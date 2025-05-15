@@ -1,0 +1,7 @@
+spring:
+  application:
+    name: db-migration
+  
+  # 引入数据库配置
+  profiles:
+    include: db
