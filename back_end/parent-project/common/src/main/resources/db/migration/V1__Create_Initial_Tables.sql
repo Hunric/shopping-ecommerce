@@ -3,13 +3,13 @@
 CREATE TABLE IF NOT EXISTS user_info (
     user_id INT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '用户id',
     username VARCHAR(20) NOT NULL COMMENT '用户名',
-    phone_number VARCHAR(11) NOT NULL COMMENT '手机号',
+    email VARCHAR(255) NOT NULL UNIQUE COMMENT '邮箱',
     password VARCHAR(255) NOT NULL COMMENT '密码(哈希和加盐后的密文)',
     gender CHAR(1) COMMENT '性别',
     avatar_url VARCHAR(255) DEFAULT 'default_avatar_url' COMMENT '头像图片链接',
     PRIMARY KEY (user_id),
     UNIQUE KEY uk_username (username),
-    UNIQUE KEY uk_phone_number (phone_number)
+    UNIQUE KEY uk_phone_number (email)
 ) COMMENT '个人信息表';
 
 -- 收货信息表
@@ -32,22 +32,25 @@ CREATE TABLE IF NOT EXISTS shipping_info (
 -- 引用自merchant_info.sql
 CREATE TABLE IF NOT EXISTS merchant_info (
     merchant_id INT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '商家id',
-    merchant_name VARCHAR(50) NOT NULL COMMENT '商家名称',
-    business_license VARCHAR(50) NOT NULL COMMENT '营业执照号',
-    legal_person VARCHAR(20) NOT NULL COMMENT '法人姓名',
-    legal_person_id_card VARCHAR(18) NOT NULL COMMENT '法人身份证号',
-    contact_person VARCHAR(20) NOT NULL COMMENT '联系人姓名',
-    contact_phone VARCHAR(11) NOT NULL COMMENT '联系人电话',
-    merchant_email VARCHAR(50) NOT NULL COMMENT '商家邮箱',
-    merchant_address VARCHAR(200) NOT NULL COMMENT '商家地址',
-    business_scope TEXT NOT NULL COMMENT '经营范围',
-    registration_date DATE NOT NULL COMMENT '注册日期',
-    merchant_status ENUM('pending', 'approved', 'rejected', 'suspended') NOT NULL DEFAULT 'pending' COMMENT '商家状态',
-    create_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    update_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    merchant_name VARCHAR(20) NOT NULL COMMENT '商家名称',
+    phone_number VARCHAR(11) UNIQUE COMMENT '手机号',
+    email VARCHAR(255) NOT NULL UNIQUE COMMENT '邮箱',
+    password VARCHAR(255) NOT NULL COMMENT '密码(哈希和加盐后的密文)',
+    merchant_type ENUM('enterprise', 'individual') NOT NULL COMMENT '商家类型: 企业/个体',
+    business_license_no CHAR(18) NOT NULL UNIQUE COMMENT '营业执照编号(统一社会信用代码)',
+    legal_person_name VARCHAR(16) NOT NULL COMMENT '法人姓名',
+    legal_person_id_card CHAR(18) NOT NULL UNIQUE COMMENT '法人身份证号',
+    contact_person_name VARCHAR(16) NOT NULL COMMENT '联系人姓名',
+    contact_phone VARCHAR(11) UNIQUE COMMENT '联系电话',
+    contact_email VARCHAR(255) UNIQUE COMMENT '邮箱地址',
+    province VARCHAR(15) NOT NULL COMMENT '省',
+    city VARCHAR(10) NOT NULL COMMENT '市',
+    county VARCHAR(10) NOT NULL COMMENT '县',
+    district VARCHAR(10) NOT NULL COMMENT '区',
+    detailed_address VARCHAR(30) NOT NULL COMMENT '具体地址',
     PRIMARY KEY (merchant_id),
-    UNIQUE KEY uk_business_license (business_license)
-) COMMENT '商家信息表';
+    UNIQUE KEY uk_merchant_name (merchant_name)
+) COMMENT '商家基础信息表';
 
 -- 店铺信息表
 -- 引用自store_info.sql
@@ -230,19 +233,12 @@ CREATE TABLE IF NOT EXISTS logistics_info (
 -- 支付信息表
 -- 引用自payment_info.sql
 CREATE TABLE IF NOT EXISTS payment_info (
-    payment_id INT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '支付ID',
-    order_id INT UNSIGNED NOT NULL COMMENT '订单ID',
-    user_id INT UNSIGNED NOT NULL COMMENT '用户ID',
-    payment_method ENUM('alipay', 'wechat', 'credit_card', 'cod') NOT NULL COMMENT '支付方式',
-    payment_amount DECIMAL(10,2) NOT NULL COMMENT '支付金额',
-    transaction_id VARCHAR(100) COMMENT '支付交易号',
-    payment_status ENUM('unpaid', 'paid', 'partially_paid', 'payment_failed', 'refunding', 'refunded') NOT NULL DEFAULT 'unpaid' COMMENT '支付状态',
-    pay_time TIMESTAMP NULL COMMENT '支付时间',
-    refund_time TIMESTAMP NULL COMMENT '退款时间',
-    create_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    update_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-    PRIMARY KEY (payment_id),
-    INDEX idx_order_id (order_id),
-    INDEX idx_user_id (user_id),
-    INDEX idx_transaction_id (transaction_id)
+    payment_id INT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '支付信息id',
+    order_id INT UNSIGNED NOT NULL UNIQUE COMMENT '订单id',
+    payment_status ENUM('unpaid', 'paid', 'partially_paid', 'payment_failed', 'refunding', 'refunded') NOT NULL COMMENT '支付状态 (unpaid:未支付, paid:已支付, partially_paid:部分支付, payment_failed:支付失败, refunding:退款中, refunded:已退款)',
+    payment_time TIMESTAMP NULL COMMENT '支付时间',
+    payment_method VARCHAR(50) COMMENT '支付方式',
+    actual_amount DECIMAL(10,2) COMMENT '实际支付金额',
+    transaction_id VARCHAR(255) UNIQUE COMMENT '支付平台交易流水号',
+    PRIMARY KEY (payment_id)
 ) COMMENT '支付信息表'; 

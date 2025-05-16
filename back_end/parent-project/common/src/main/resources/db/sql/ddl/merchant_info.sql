@@ -2,7 +2,7 @@ CREATE TABLE merchant_info (
     merchant_id INT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '商家id',
     merchant_name VARCHAR(20) NOT NULL COMMENT '商家名称',
     phone_number VARCHAR(11) UNIQUE COMMENT '手机号',
-    email VARCHAR(255) UNIQUE COMMENT '邮箱',
+    email VARCHAR(255) NOT NULL UNIQUE COMMENT '邮箱',
     password VARCHAR(255) NOT NULL COMMENT '密码(哈希和加盐后的密文)',
     merchant_type ENUM('enterprise', 'individual') NOT NULL COMMENT '商家类型: 企业/个体',
     business_license_no CHAR(18) NOT NULL UNIQUE COMMENT '营业执照编号(统一社会信用代码)',

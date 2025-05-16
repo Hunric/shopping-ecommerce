@@ -44,12 +44,19 @@
               
               <div class="form-row">
                 <div class="form-group">
-                  <label>手机号</label>
-                  <input type="text" class="form-control" placeholder="请输入手机号" />
-                </div>
-                <div class="form-group">
                   <label>邮箱</label>
-                  <input type="email" class="form-control" placeholder="请输入邮箱" />
+                  <div class="email-input-wrapper">
+                    <input type="email" class="form-control" placeholder="请输入邮箱" :class="{'verified': isEmailVerified}" :disabled="isEmailVerified" />
+                    <span class="verify-success-icon" v-if="isEmailVerified">✓</span>
+                  </div>
+                </div>
+                <div class="form-group verify-group" v-if="!isEmailVerified">
+                  <label>邮箱验证码</label>
+                  <div class="verify-input-group">
+                    <input type="text" class="form-control verify-input" placeholder="请输入验证码" v-model="verifyCode" />
+                    <button type="button" class="verify-send-btn" @click="sendVerifyCode" :disabled="countdown > 0">{{ sendBtnText }}</button>
+                    <button type="button" class="verify-confirm-btn" @click="verifyEmailCode">验证</button>
+                  </div>
                 </div>
               </div>
               
@@ -58,9 +65,15 @@
                   <label>密码</label>
                   <input type="password" class="form-control" placeholder="请输入密码" />
                 </div>
+              </div>
+              
+              <div class="form-row">
                 <div class="form-group">
                   <label>确认密码</label>
                   <input type="password" class="form-control" placeholder="请再次输入密码" />
+                </div>
+                <div class="form-group">
+                  <!-- 添加一个空的占位分组，使确认密码与其他输入框宽度一致 -->
                 </div>
               </div>
             </div>
@@ -72,6 +85,9 @@
                 <div class="form-group">
                   <label>营业执照编号 (统一社会信用代码)</label>
                   <input type="text" class="form-control" placeholder="请输入18位统一社会信用代码" />
+                </div>
+                <div class="form-group">
+                  <!-- 添加空的占位分组 -->
                 </div>
               </div>
               
@@ -105,6 +121,9 @@
                 <div class="form-group">
                   <label>联系邮箱</label>
                   <input type="email" class="form-control" placeholder="请输入联系邮箱" />
+                </div>
+                <div class="form-group">
+                  <!-- 添加空的占位分组 -->
                 </div>
               </div>
             </div>
@@ -157,6 +176,59 @@
 
 <script setup lang="ts">
 // 注册页面逻辑
+import { ref } from 'vue';
+
+// 邮箱验证码倒计时逻辑
+const countdown = ref(0);
+const sendBtnText = ref('获取验证码');
+const verifyCode = ref('');
+const isEmailVerified = ref(false);
+let timer: number | null = null;
+
+// 发送邮箱验证码
+const sendVerifyCode = () => {
+  // 如果正在倒计时，则不执行
+  if (countdown.value > 0) return;
+  
+  // 这里应该添加邮箱格式验证逻辑
+  
+  // 模拟发送验证码的API调用
+  // 实际项目中替换为真实的API调用
+  console.log('发送邮箱验证码');
+  
+  // 开始倒计时（60秒）
+  countdown.value = 60;
+  sendBtnText.value = `${countdown.value}秒后重新获取`;
+  
+  // 设置定时器
+  timer = window.setInterval(() => {
+    countdown.value--;
+    sendBtnText.value = `${countdown.value}秒后重新获取`;
+    
+    if (countdown.value <= 0) {
+      sendBtnText.value = '获取验证码';
+      clearInterval(timer!);
+      timer = null;
+    }
+  }, 1000);
+};
+
+// 验证邮箱验证码
+const verifyEmailCode = () => {
+  // 这里应该调用后端API验证验证码
+  // 模拟验证成功
+  console.log('验证邮箱验证码:', verifyCode.value);
+  
+  // 假设验证通过
+  if (verifyCode.value) {
+    isEmailVerified.value = true;
+    // 可以在这里显示成功消息
+    console.log('邮箱验证成功');
+  } else {
+    // 可以在这里显示错误消息
+    console.log('请输入验证码');
+  }
+};
 </script>
 
 <style scoped>
@@ -313,10 +385,86 @@
   transition: border-color 0.3s;
   background-color: #F2F2F2;
   color: #333;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .form-control:focus {
   border-color: #10b5b8;
+}
+
+.email-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.verify-input-group {
+  display: flex;
+  gap: 10px;
+  width: 100%;
+}
+
+.verify-input {
+  flex: 1;
+  max-width: 120px;
+}
+
+.verify-success-icon {
+  position: absolute;
+  right: 10px;
+  color: #4caf50;
+  font-size: 18px;
+  font-weight: bold;
+}
+
+input.verified {
+  border-color: #4caf50;
+  background-color: rgba(76, 175, 80, 0.05);
+}
+
+.verify-send-btn {
+  padding: 0 15px;
+  background-color: #10b5b8;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 0.3s;
+  white-space: nowrap;
+  flex-shrink: 0;
+  width: auto;
+  min-width: 90px;
+}
+
+.verify-confirm-btn {
+  padding: 0 15px;
+  background-color: #4caf50;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 0.3s;
+  white-space: nowrap;
+  flex-shrink: 0;
+  width: auto;
+  min-width: 60px;
+}
+
+.verify-confirm-btn:hover {
+  background-color: #3d8b40;
+}
+
+.verify-send-btn:hover {
+  background-color: #0d9598;
+}
+
+.verify-send-btn:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
 }
 
 select.form-control {
