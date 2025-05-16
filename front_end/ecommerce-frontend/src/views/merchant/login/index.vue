@@ -12,17 +12,22 @@
       </div>
       <div class="login-right">
         <h2 class="title">Sign in to System</h2>
-        <div class="form-group">
-          <input type="email" class="form-control" placeholder="邮箱" v-model="email" />
+        <div v-if="message" :class="['message', { 'error': !success, 'success': success }]">
+          {{ message }}
         </div>
-        <div class="verification-group">
-          <input type="text" class="verification-input" placeholder="验证码" v-model="verifyCode" />
-          <button class="verification-btn" @click="sendVerifyCode" :disabled="countdown > 0">{{ sendBtnText }}</button>
+        <div class="login-form">
+          <div class="form-group">
+            <input type="email" class="form-control" placeholder="邮箱" v-model="email" />
+          </div>
+          <div class="verification-group">
+            <input type="text" class="verification-input" placeholder="验证码" v-model="verifyCode" />
+            <button class="verification-btn" @click="sendVerifyCode" :disabled="countdown > 0">{{ sendBtnText }}</button>
+          </div>
+          <div class="forgot-password">
+            <a href="#">忘记密码?</a>
+          </div>
+          <button class="signin-btn" @click="login">SIGN IN</button>
         </div>
-        <div class="forgot-password">
-          <a href="#">忘记密码?</a>
-        </div>
-        <button class="signin-btn" @click="login">SIGN IN</button>
       </div>
     </div>
   </div>
@@ -31,6 +36,10 @@
 <script setup lang="ts">
 // 登录页面逻辑
 import { ref } from 'vue';
+import { verificationApi } from '@/api/verification';
+import { useRouter } from 'vue-router';
+
+const router = useRouter();
 
 // 邮箱和验证码
 const email = ref('');
@@ -41,55 +50,93 @@ const countdown = ref(0);
 const sendBtnText = ref('发送验证码');
 let timer: number | null = null;
 
+// 提示消息
+const message = ref('');
+const success = ref(false);
+
+// 显示消息函数
+const showMessage = (msg: string, isSuccess: boolean) => {
+  message.value = msg;
+  success.value = isSuccess;
+  
+  // 3秒后自动清除消息
+  setTimeout(() => {
+    message.value = '';
+  }, 3000);
+};
+
 // 发送邮箱验证码
-const sendVerifyCode = () => {
+const sendVerifyCode = async () => {
   // 如果正在倒计时，则不执行
   if (countdown.value > 0) return;
   
   // 验证邮箱格式
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   if (!emailRegex.test(email.value)) {
-    console.error('请输入有效的邮箱地址');
+    showMessage('请输入有效的邮箱地址', false);
     return;
   }
   
-  // 模拟发送验证码的API调用
-  // 实际项目中替换为真实的API调用
-  console.log('发送邮箱验证码到:', email.value);
-  
-  // 开始倒计时（60秒）
-  countdown.value = 60;
-  sendBtnText.value = `${countdown.value}秒后重新获取`;
-  
-  // 设置定时器
-  timer = window.setInterval(() => {
-    countdown.value--;
+  try {
+    // 调用验证码API
+    await verificationApi.sendVerificationCode(email.value, 'login');
+    showMessage('验证码已发送到您的邮箱', true);
+    
+    // 开始倒计时（60秒）
+    countdown.value = 60;
     sendBtnText.value = `${countdown.value}秒后重新获取`;
     
-    if (countdown.value <= 0) {
-      sendBtnText.value = '发送验证码';
-      clearInterval(timer!);
-      timer = null;
-    }
-  }, 1000);
+    // 设置定时器
+    timer = window.setInterval(() => {
+      countdown.value--;
+      sendBtnText.value = `${countdown.value}秒后重新获取`;
+      
+      if (countdown.value <= 0) {
+        sendBtnText.value = '发送验证码';
+        clearInterval(timer!);
+        timer = null;
+      }
+    }, 1000);
+  } catch (error) {
+    console.error('发送验证码失败:', error);
+    showMessage('发送验证码失败，请稍后重试', false);
+  }
 };
 
 // 登录逻辑
-const login = () => {
+const login = async () => {
   // 验证邮箱和验证码
   if (!email.value) {
-    console.error('请输入邮箱');
+    showMessage('请输入邮箱', false);
     return;
   }
   
   if (!verifyCode.value) {
-    console.error('请输入验证码');
+    showMessage('请输入验证码', false);
     return;
   }
   
-  // 这里调用登录API
-  console.log('登录请求:', { email: email.value, verifyCode: verifyCode.value });
-  // 实际项目需要连接后端API
+  try {
+    // 验证验证码
+    const response = await verificationApi.verifyCode(email.value, verifyCode.value, 'login');
+    
+    if (response.data.success) {
+      showMessage('验证成功，正在登录...', true);
+      
+      // 这里可以添加调用登录API的逻辑
+      // ...
+      
+      // 登录成功后跳转到商家后台
+      setTimeout(() => {
+        router.push('/merchant/dashboard');
+      }, 1000);
+    } else {
+      showMessage(response.data.message || '验证码错误', false);
+    }
+  } catch (error) {
+    console.error('验证失败:', error);
+    showMessage('验证失败，请检查验证码是否正确', false);
+  }
 };
 </script>
 
@@ -133,6 +180,12 @@ const login = () => {
   justify-content: center;
 }
 
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
 .logo {
   font-size: 18px;
   font-weight: bold;
@@ -170,12 +223,12 @@ const login = () => {
 .title {
   font-size: 30px;
   color: #333;
-  margin-bottom: 40px;
+  margin-bottom: 20px;
   text-align: center;
 }
 
 .form-group {
-  margin-bottom: 20px;
+  margin-bottom: 10px;
 }
 
 .form-control {
@@ -185,13 +238,18 @@ const login = () => {
   border-radius: 5px;
   font-size: 16px;
   outline: none;
-  background-color: #F2F2F2;
+  background-color: #FAFAFA;
   color: #333;
+}
+
+.form-control::placeholder {
+  font-size: 14px;
+  color: #999;
 }
 
 .verification-group {
   display: flex;
-  margin-bottom: 20px;
+  margin-bottom: 10px;
 }
 
 .verification-input {
@@ -202,8 +260,13 @@ const login = () => {
   font-size: 16px;
   outline: none;
   margin-right: 10px;
-  background-color: #F2F2F2;
+  background-color: #FAFAFA;
   color: #333;
+}
+
+.verification-input::placeholder {
+  font-size: 14px;
+  color: #999;
 }
 
 .verification-btn {
@@ -228,7 +291,7 @@ const login = () => {
 
 .forgot-password {
   text-align: right;
-  margin-bottom: 30px;
+  margin-bottom: 15px;
 }
 
 .forgot-password a {
@@ -250,5 +313,25 @@ const login = () => {
 
 .signin-btn:hover {
   background-color: #0e9a9d;
+}
+
+.message {
+  padding: 10px;
+  margin-bottom: 20px;
+  border-radius: 5px;
+  text-align: center;
+  font-size: 14px;
+}
+
+.error {
+  background-color: #ffebee;
+  color: #d32f2f;
+  border: 1px solid #ffcdd2;
+}
+
+.success {
+  background-color: #e8f5e9;
+  color: #388e3c;
+  border: 1px solid #c8e6c9;
 }
 </style> 

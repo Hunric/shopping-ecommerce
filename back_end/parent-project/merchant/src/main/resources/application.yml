@@ -1,0 +1,67 @@
+server:
+  port: 8080
+  servlet:
+    context-path: /merchant
+
+spring:
+  application:
+    name: merchant-service
+    
+  # 数据库配置暂时禁用
+  datasource:
+    url: jdbc:mysql://localhost:3306/shopping_merchant?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+    username: root
+    password: password
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    
+  # Flyway配置暂时禁用
+  flyway:
+    enabled: false  # 禁用Flyway
+    baseline-on-migrate: true
+    locations: classpath:db/migration
+    
+  # 邮件服务配置
+  mail:
+    host: smtp.163.com   # 邮件服务器地址
+    port: 465            # 邮件服务器端口
+    username: 18579776220@163.com  # 邮箱账号
+    password: VUZjaRxJP74HHFRZ      # 邮箱授权码（不是登录密码）
+    default-encoding: UTF-8
+    properties:
+      mail:
+        smtp:
+          auth: true
+          ssl:
+            enable: true
+          starttls:
+            enable: true
+            required: true
+
+  # 禁用数据源自动配置
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
+      - org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration
+
+  # Redis配置
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      timeout: 5000
+      password:
+      database: 0
+
+
+# MyBatis配置
+mybatis:
+  mapper-locations: classpath:mapper/*.xml
+  type-aliases-package: com.hunric.model
+  configuration:
+    map-underscore-to-camel-case: true
+    
+# 日志配置
+logging:
+  level:
+    com.hunric: debug
+    org.springframework: info 
