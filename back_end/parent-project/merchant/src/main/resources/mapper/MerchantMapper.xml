@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.hunric.mapper.MerchantMapper">
+    <!-- 商家结果映射 -->
+    <resultMap id="merchantMap" type="com.hunric.model.Merchant">
+        <id property="id" column="merchant_id"/>
+        <result property="merchantName" column="merchant_name"/>
+        <result property="merchantType" column="merchant_type"/>
+        <result property="email" column="email"/>
+        <result property="password" column="password"/>
+        <result property="licenseNumber" column="business_license_no"/>
+        <result property="legalPersonName" column="legal_person_name"/>
+        <result property="legalPersonId" column="legal_person_id_card"/>
+        <result property="contactName" column="contact_person_name"/>
+        <result property="contactPhone" column="contact_phone"/>
+        <result property="contactEmail" column="contact_email"/>
+        <result property="provinceCode" column="province"/>
+        <result property="cityCode" column="city"/>
+        <result property="districtCode" column="county"/>
+        <result property="detailAddress" column="detailed_address"/>
+    </resultMap>
+    
+    <!-- 商家表的所有字段 -->
+    <sql id="allColumns">
+        merchant_id, merchant_name, merchant_type, email, password, 
+        business_license_no, legal_person_name, legal_person_id_card, 
+        contact_person_name, contact_phone, contact_email, 
+        province, city, county, district, detailed_address
+    </sql>
+    
+    <!-- 插入新商家 -->
+    <insert id="insert" parameterType="com.hunric.model.Merchant" useGeneratedKeys="true" keyProperty="id" keyColumn="merchant_id">
+        INSERT INTO merchant_info (
+            merchant_name, phone_number, email, password, merchant_type,
+            business_license_no, legal_person_name, legal_person_id_card, 
+            contact_person_name, contact_phone, contact_email, 
+            province, city, county, district, detailed_address
+        ) VALUES (
+            #{merchantName}, #{contactPhone}, #{email}, #{password}, 
+            #{merchantType},
+            #{licenseNumber}, #{legalPersonName}, #{legalPersonId}, 
+            #{contactName}, #{contactPhone}, #{contactEmail}, 
+            #{provinceCode}, #{cityCode}, #{districtCode}, #{districtCode}, #{detailAddress}
+        )
+    </insert>
+    
+    <!-- 更新商家信息 -->
+    <update id="update" parameterType="com.hunric.model.Merchant">
+        UPDATE merchant_info
+        <set>
+            <if test="merchantName != null">merchant_name = #{merchantName},</if>
+            <if test="merchantType != null">merchant_type = #{merchantType},</if>
+            <if test="contactPhone != null">phone_number = #{contactPhone},</if>
+            <if test="licenseNumber != null">business_license_no = #{licenseNumber},</if>
+            <if test="legalPersonName != null">legal_person_name = #{legalPersonName},</if>
+            <if test="legalPersonId != null">legal_person_id_card = #{legalPersonId},</if>
+            <if test="contactName != null">contact_person_name = #{contactName},</if>
+            <if test="contactPhone != null">contact_phone = #{contactPhone},</if>
+            <if test="contactEmail != null">contact_email = #{contactEmail},</if>
+            <if test="provinceCode != null">province = #{provinceCode},</if>
+            <if test="cityCode != null">city = #{cityCode},</if>
+            <if test="districtCode != null">county = #{districtCode},</if>
+            <if test="districtCode != null">district = #{districtCode},</if>
+            <if test="detailAddress != null">detailed_address = #{detailAddress},</if>
+        </set>
+        WHERE merchant_id = #{id}
+    </update>
+    
+    <!-- 根据ID查询商家 -->
+    <select id="selectById" resultMap="merchantMap">
+        SELECT <include refid="allColumns"/>
+        FROM merchant_info
+        WHERE merchant_id = #{id}
+    </select>
+    
+    <!-- 根据邮箱查询商家 -->
+    <select id="selectByEmail" resultMap="merchantMap">
+        SELECT <include refid="allColumns"/>
+        FROM merchant_info
+        WHERE email = #{email}
+    </select>
+    
+    <!-- 根据商家名称查询商家 -->
+    <select id="selectByMerchantName" resultMap="merchantMap">
+        SELECT <include refid="allColumns"/>
+        FROM merchant_info
+        WHERE merchant_name = #{merchantName}
+    </select>
+    
+    <!-- 根据营业执照编号查询商家 -->
+    <select id="selectByLicenseNumber" resultMap="merchantMap">
+        SELECT <include refid="allColumns"/>
+        FROM merchant_info
+        WHERE business_license_no = #{licenseNumber}
+    </select>
+    
+    <!-- 根据法人身份证号查询商家 -->
+    <select id="selectByLegalPersonId" resultMap="merchantMap">
+        SELECT <include refid="allColumns"/>
+        FROM merchant_info
+        WHERE legal_person_id_card = #{legalPersonId}
+    </select>
+    
+    <!-- 根据条件查询商家列表 -->
+    <select id="selectList" parameterType="com.hunric.model.Merchant" resultMap="merchantMap">
+        SELECT <include refid="allColumns"/>
+        FROM merchant_info
+        <where>
+            <if test="merchantName != null and merchantName != ''">
+                AND merchant_name LIKE CONCAT('%', #{merchantName}, '%')
+            </if>
+            <if test="merchantType != null and merchantType != ''">
+                AND merchant_type = #{merchantType}
+            </if>
+            <if test="email != null and email != ''">
+                AND email = #{email}
+            </if>
+            <if test="licenseNumber != null and licenseNumber != ''">
+                AND business_license_no = #{licenseNumber}
+            </if>
+        </where>
+        ORDER BY merchant_id DESC
+    </select>
+    
+    <!-- 更新商家状态（由于原表中没有status字段，此方法可能需要根据实际情况调整或删除） -->
+</mapper> 

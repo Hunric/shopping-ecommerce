@@ -7,16 +7,16 @@ spring:
   application:
     name: merchant-service
     
-  # 数据库配置暂时禁用
+  # 启用数据库配置
   datasource:
-    url: jdbc:mysql://localhost:3306/shopping_merchant?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+    url: jdbc:mysql://localhost:3306/ecommerce_db?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=Asia/Shanghai
     username: root
-    password: password
+    password: 123456
     driver-class-name: com.mysql.cj.jdbc.Driver
     
-  # Flyway配置暂时禁用
+  # 启用Flyway配置
   flyway:
-    enabled: false  # 禁用Flyway
+    enabled: false
     baseline-on-migrate: true
     locations: classpath:db/migration
     
@@ -36,12 +36,6 @@ spring:
           starttls:
             enable: true
             required: true
-
-  # 禁用数据源自动配置
-  autoconfigure:
-    exclude:
-      - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
-      - org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration
 
   # Redis配置
   data:

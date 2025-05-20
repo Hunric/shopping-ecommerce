@@ -276,7 +276,6 @@
 // 注册页面逻辑
 import { ref, onMounted, reactive, watch } from 'vue';
 import { verificationApi } from '@/api/verification';
-import merchantApi from '@/api/merchant';
 import { useRouter } from 'vue-router';
 import type { Region } from '@/services/address/types';
 import addressService from '@/services/address/addressService';
@@ -513,7 +512,7 @@ const setupFormWatchers = () => {
 };
 
 // 表单提交函数
-const submitForm = async () => {
+const submitForm = () => {
   // 标记表单已尝试提交
   formSubmitted.value = true;
   
@@ -551,53 +550,17 @@ const submitForm = async () => {
     return;
   }
   
-  // 准备注册数据
-  const registerData = {
-    merchantName: formData.merchantName,
-    merchantType: formData.merchantType,
-    email: merchantEmail.value,
-    password: formData.password,
-    licenseNumber: formData.licenseNumber,
-    legalPersonName: formData.legalPersonName,
-    legalPersonId: formData.legalPersonId,
-    contactName: formData.contactName,
-    contactPhone: formData.contactPhone,
-    contactEmail: formData.contactEmail,
-    addressCodes: addressCodes.value,
-    detailAddress: formData.detailAddress
-  };
-  
-  // 表单验证通过，发起真正的注册请求
+  // 表单验证通过，发起注册请求
+  // TODO: 调用API进行注册
   showMessage('表单验证通过，正在提交...', true);
   
-  try {
-    // 调用商家注册API
-    const response = await merchantApi.register(registerData);
-    
-    // 检查注册结果
-    if (response.data && response.data.success) {
-      showMessage('注册成功，正在跳转...', true);
-      setTimeout(() => {
-        router.push('/merchant/login');
-      }, 2000);
-    } else {
-      // 注册失败
-      const errorMsg = response.data && response.data.message ? response.data.message : '注册失败，请重试';
-      showMessage(errorMsg, false);
-    }
-  } catch (error) {
-    console.error('注册请求发生错误:', error);
-    let errorMsg = '注册失败，请稍后重试';
-    
-    if (error && typeof error === 'object' && 'response' in error && 
-        error.response && typeof error.response === 'object' && 
-        'data' in error.response && error.response.data && 
-        typeof error.response.data === 'object' && 'message' in error.response.data) {
-      errorMsg = String(error.response.data.message);
-    }
-    
-    showMessage(errorMsg, false);
-  }
+  // 模拟API调用
+  setTimeout(() => {
+    showMessage('注册成功，正在跳转...', true);
+    setTimeout(() => {
+      router.push('/merchant/login');
+    }, 2000);
+  }, 1500);
 };
 
 // 清除所有错误信息
