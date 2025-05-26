@@ -1,0 +1,129 @@
+{
+	"info": {
+		"_postman_id": "merchant-login-api",
+		"name": "商家登录API测试",
+		"description": "商家邮箱验证码登录功能测试集合",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "1. 发送登录验证码",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"email\": \"merchant@example.com\"\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/api/merchant/send-login-code",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"merchant",
+						"send-login-code"
+					]
+				},
+				"description": "发送登录验证码到商家邮箱"
+			},
+			"response": []
+		},
+		{
+			"name": "2. 验证码登录",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"email\": \"merchant@example.com\",\n    \"verificationCode\": \"123456\"\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/api/merchant/login",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"merchant",
+						"login"
+					]
+				},
+				"description": "使用邮箱和验证码登录"
+			},
+			"response": []
+		},
+		{
+			"name": "3. 商家注册（用于测试）",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"merchantName\": \"测试商家\",\n    \"merchantType\": \"company\",\n    \"email\": \"merchant@example.com\",\n    \"password\": \"password123\",\n    \"licenseNumber\": \"91110000000000000X\",\n    \"legalPersonName\": \"张三\",\n    \"legalPersonId\": \"110101199001011234\",\n    \"contactName\": \"李四\",\n    \"contactPhone\": \"13800138000\",\n    \"contactEmail\": \"contact@example.com\",\n    \"addressCodes\": [\"110000\", \"110100\", \"110101\"],\n    \"detailAddress\": \"测试地址123号\"\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/api/merchant/register",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"merchant",
+						"register"
+					]
+				},
+				"description": "注册测试商家账号"
+			},
+			"response": []
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:8081/merchant",
+			"type": "string"
+		},
+		{
+			"key": "access_token",
+			"value": "",
+			"type": "string"
+		}
+	]
+} 

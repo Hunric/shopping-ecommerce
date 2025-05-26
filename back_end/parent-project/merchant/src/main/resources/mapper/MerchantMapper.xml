@@ -4,21 +4,23 @@
 <mapper namespace="com.hunric.mapper.MerchantMapper">
     <!-- 商家结果映射 -->
     <resultMap id="merchantMap" type="com.hunric.model.Merchant">
-        <id property="id" column="merchant_id"/>
+        <id property="merchantId" column="merchant_id"/>
         <result property="merchantName" column="merchant_name"/>
-        <result property="merchantType" column="merchant_type"/>
+        <result property="phoneNumber" column="phone_number"/>
         <result property="email" column="email"/>
         <result property="password" column="password"/>
-        <result property="licenseNumber" column="business_license_no"/>
+        <result property="merchantType" column="merchant_type"/>
+        <result property="businessLicenseNo" column="business_license_no"/>
         <result property="legalPersonName" column="legal_person_name"/>
-        <result property="legalPersonId" column="legal_person_id_card"/>
-        <result property="contactName" column="contact_person_name"/>
+        <result property="legalPersonIdCard" column="legal_person_id_card"/>
+        <result property="contactPersonName" column="contact_person_name"/>
         <result property="contactPhone" column="contact_phone"/>
         <result property="contactEmail" column="contact_email"/>
-        <result property="provinceCode" column="province"/>
-        <result property="cityCode" column="city"/>
-        <result property="districtCode" column="county"/>
-        <result property="detailAddress" column="detailed_address"/>
+        <result property="province" column="province"/>
+        <result property="city" column="city"/>
+        <result property="county" column="county"/>
+        <result property="district" column="district"/>
+        <result property="detailedAddress" column="detailed_address"/>
     </resultMap>
     
     <!-- 商家表的所有字段 -->
@@ -30,18 +32,18 @@
     </sql>
     
     <!-- 插入新商家 -->
-    <insert id="insert" parameterType="com.hunric.model.Merchant" useGeneratedKeys="true" keyProperty="id" keyColumn="merchant_id">
+    <insert id="insert" parameterType="com.hunric.model.Merchant" useGeneratedKeys="true" keyProperty="merchantId" keyColumn="merchant_id">
         INSERT INTO merchant_info (
             merchant_name, phone_number, email, password, merchant_type,
             business_license_no, legal_person_name, legal_person_id_card, 
             contact_person_name, contact_phone, contact_email, 
             province, city, county, district, detailed_address
         ) VALUES (
-            #{merchantName}, #{contactPhone}, #{email}, #{password}, 
+            #{merchantName}, #{phoneNumber}, #{email}, #{password}, 
             #{merchantType},
-            #{licenseNumber}, #{legalPersonName}, #{legalPersonId}, 
-            #{contactName}, #{contactPhone}, #{contactEmail}, 
-            #{provinceCode}, #{cityCode}, #{districtCode}, #{districtCode}, #{detailAddress}
+            #{businessLicenseNo}, #{legalPersonName}, #{legalPersonIdCard}, 
+            #{contactPersonName}, #{contactPhone}, #{contactEmail}, 
+            #{province}, #{city}, #{county}, #{district}, #{detailedAddress}
         )
     </insert>
     
@@ -50,28 +52,28 @@
         UPDATE merchant_info
         <set>
             <if test="merchantName != null">merchant_name = #{merchantName},</if>
+            <if test="phoneNumber != null">phone_number = #{phoneNumber},</if>
             <if test="merchantType != null">merchant_type = #{merchantType},</if>
-            <if test="contactPhone != null">phone_number = #{contactPhone},</if>
-            <if test="licenseNumber != null">business_license_no = #{licenseNumber},</if>
+            <if test="businessLicenseNo != null">business_license_no = #{businessLicenseNo},</if>
             <if test="legalPersonName != null">legal_person_name = #{legalPersonName},</if>
-            <if test="legalPersonId != null">legal_person_id_card = #{legalPersonId},</if>
-            <if test="contactName != null">contact_person_name = #{contactName},</if>
+            <if test="legalPersonIdCard != null">legal_person_id_card = #{legalPersonIdCard},</if>
+            <if test="contactPersonName != null">contact_person_name = #{contactPersonName},</if>
             <if test="contactPhone != null">contact_phone = #{contactPhone},</if>
             <if test="contactEmail != null">contact_email = #{contactEmail},</if>
-            <if test="provinceCode != null">province = #{provinceCode},</if>
-            <if test="cityCode != null">city = #{cityCode},</if>
-            <if test="districtCode != null">county = #{districtCode},</if>
-            <if test="districtCode != null">district = #{districtCode},</if>
-            <if test="detailAddress != null">detailed_address = #{detailAddress},</if>
+            <if test="province != null">province = #{province},</if>
+            <if test="city != null">city = #{city},</if>
+            <if test="county != null">county = #{county},</if>
+            <if test="district != null">district = #{district},</if>
+            <if test="detailedAddress != null">detailed_address = #{detailedAddress},</if>
         </set>
-        WHERE merchant_id = #{id}
+        WHERE merchant_id = #{merchantId}
     </update>
     
     <!-- 根据ID查询商家 -->
     <select id="selectById" resultMap="merchantMap">
         SELECT <include refid="allColumns"/>
         FROM merchant_info
-        WHERE merchant_id = #{id}
+        WHERE merchant_id = #{merchantId}
     </select>
     
     <!-- 根据邮箱查询商家 -->
@@ -89,17 +91,17 @@
     </select>
     
     <!-- 根据营业执照编号查询商家 -->
-    <select id="selectByLicenseNumber" resultMap="merchantMap">
+    <select id="selectByBusinessLicenseNo" resultMap="merchantMap">
         SELECT <include refid="allColumns"/>
         FROM merchant_info
-        WHERE business_license_no = #{licenseNumber}
+        WHERE business_license_no = #{businessLicenseNo}
     </select>
     
     <!-- 根据法人身份证号查询商家 -->
-    <select id="selectByLegalPersonId" resultMap="merchantMap">
+    <select id="selectByLegalPersonIdCard" resultMap="merchantMap">
         SELECT <include refid="allColumns"/>
         FROM merchant_info
-        WHERE legal_person_id_card = #{legalPersonId}
+        WHERE legal_person_id_card = #{legalPersonIdCard}
     </select>
     
     <!-- 根据条件查询商家列表 -->
@@ -116,12 +118,10 @@
             <if test="email != null and email != ''">
                 AND email = #{email}
             </if>
-            <if test="licenseNumber != null and licenseNumber != ''">
-                AND business_license_no = #{licenseNumber}
+            <if test="businessLicenseNo != null and businessLicenseNo != ''">
+                AND business_license_no = #{businessLicenseNo}
             </if>
         </where>
         ORDER BY merchant_id DESC
     </select>
-    
-    <!-- 更新商家状态（由于原表中没有status字段，此方法可能需要根据实际情况调整或删除） -->
 </mapper> 

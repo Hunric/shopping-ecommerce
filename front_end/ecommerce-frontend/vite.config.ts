@@ -8,5 +8,15 @@ export default defineConfig({
     alias: {
       '@': '/src'
     }
+  },
+  server: {
+    port: 3000,
+    proxy: {
+      '/api': {
+        target: 'http://localhost:8081/merchant',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api/, '/api')
+      }
+    }
   }
 })

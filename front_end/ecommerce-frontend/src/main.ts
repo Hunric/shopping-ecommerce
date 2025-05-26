@@ -1,4 +1,5 @@
 import { createApp } from 'vue'
+import { createPinia } from 'pinia'
 import App from './App.vue'
 import router from './router'
 import './style.css'
@@ -15,9 +16,13 @@ import MerchantLogin from './views/merchant/login/index.vue'
 
 // 创建应用实例
 const app = createApp(App)
+const pinia = createPinia()
 
 // 加载组件
 app.component('MerchantLogin', MerchantLogin)
+
+// 使用Pinia状态管理
+app.use(pinia)
 
 // 使用Element Plus，配置中文
 app.use(ElementPlus, {

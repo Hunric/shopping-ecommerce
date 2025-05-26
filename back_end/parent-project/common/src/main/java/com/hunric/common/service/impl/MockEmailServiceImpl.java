@@ -1,14 +1,9 @@
 package com.hunric.common.service.impl;
 
-import com.hunric.common.model.VerificationCode;
 import com.hunric.common.service.EmailService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Profile;
 import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.mail.SimpleMailMessage;
-import org.springframework.mail.javamail.JavaMailSender;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -19,17 +14,14 @@ import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
 /**
- * 邮件服务实现类 - 用于生产环境
+ * 模拟邮件服务实现类 - 用于开发环境
+ * 不发送真实邮件，而是在控制台输出验证码
  */
 @Service
-@Profile("prod")  // 只在生产环境使用
-public class EmailServiceImpl implements EmailService {
+@Profile("!prod")  // 非生产环境使用
+public class MockEmailServiceImpl implements EmailService {
 
-    private final JavaMailSender mailSender;
     private final RedisTemplate<String, Object> redisTemplate;
-    
-    @Value("${spring.mail.username}")
-    private String fromEmail;
     
     // Redis键前缀
     private static final String EMAIL_CODE_PREFIX = "email:code:";
@@ -41,14 +33,14 @@ public class EmailServiceImpl implements EmailService {
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
     
     @Autowired
-    public EmailServiceImpl(JavaMailSender mailSender, RedisTemplate<String, Object> redisTemplate) {
-        this.mailSender = mailSender;
+    public MockEmailServiceImpl(RedisTemplate<String, Object> redisTemplate) {
         this.redisTemplate = redisTemplate;
     }
 
     @Override
     public String sendVerificationCode(String to, String purpose) {
         try {
+            System.out.println("=== 模拟邮件服务 ===");
             System.out.println("开始发送验证码: email=" + to + ", purpose=" + purpose);
             
             // 参数验证
@@ -61,7 +53,6 @@ public class EmailServiceImpl implements EmailService {
             
             // 生成6位验证码
             String code = generateRandomCode();
-            System.out.println("生成的验证码: " + code);
             
             // 准备当前时间和过期时间
             LocalDateTime now = LocalDateTime.now();
@@ -86,19 +77,24 @@ public class EmailServiceImpl implements EmailService {
             } catch (Exception e) {
                 System.err.println("Redis存储失败: " + e.getMessage());
                 e.printStackTrace();
-                // 继续执行，至少尝试发送邮件
+                throw new RuntimeException("Redis存储失败", e);
             }
             
-            // 异步发送邮件
-            System.out.println("准备异步发送邮件");
-            sendEmailAsync(to, getPurposeSubject(purpose), getEmailContent(code, purpose));
-            System.out.println("邮件已提交异步发送队列");
+            // 模拟发送邮件 - 在控制台输出
+            System.out.println("==========================================");
+            System.out.println("📧 模拟邮件发送");
+            System.out.println("收件人: " + to);
+            System.out.println("主题: " + getPurposeSubject(purpose));
+            System.out.println("验证码: " + code);
+            System.out.println("有效期: " + CODE_EXPIRATION_MINUTES + " 分钟");
+            System.out.println("过期时间: " + expireTime.format(DATE_FORMATTER));
+            System.out.println("==========================================");
             
             return code;
         } catch (Exception e) {
             System.err.println("验证码发送过程中出错: " + e.getMessage());
             e.printStackTrace();
-            throw e; // 重新抛出异常以便控制器能够捕获
+            throw e;
         }
     }
 
@@ -182,50 +178,11 @@ public class EmailServiceImpl implements EmailService {
     }
     
     /**
-     * 生成邮件内容
-     */
-    private String getEmailContent(String code, String purpose) {
-        String purposeText = switch (purpose) {
-            case "login" -> "登录";
-            case "register" -> "注册";
-            case "resetPassword" -> "重置密码";
-            default -> "验证";
-        };
-        
-        return "您的" + purposeText + "验证码是：" + code + "\n\n" +
-               "验证码" + CODE_EXPIRATION_MINUTES + "分钟内有效，请勿泄露给他人。\n\n" +
-               "如非本人操作，请忽略此邮件。";
-    }
-    
-    /**
-     * 异步发送邮件
-     */
-    @Async("emailTaskExecutor")
-    private void sendEmailAsync(String to, String subject, String content) {
-        try {
-            SimpleMailMessage message = new SimpleMailMessage();
-            message.setFrom(fromEmail);
-            message.setTo(to);
-            message.setSubject(subject);
-            message.setText(content);
-            
-            mailSender.send(message);
-            System.out.println("邮件发送成功: " + to);
-        } catch (Exception e) {
-            System.err.println("邮件发送失败: " + e.getMessage());
-            e.printStackTrace();
-        }
-    }
-    
-    /**
-     * 生成随机验证码
+     * 生成6位随机验证码
      */
     private String generateRandomCode() {
         Random random = new Random();
-        StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < 6; i++) {
-            sb.append(random.nextInt(10));
-        }
-        return sb.toString();
+        int code = 100000 + random.nextInt(900000); // 生成100000-999999之间的数字
+        return String.valueOf(code);
     }
 } 

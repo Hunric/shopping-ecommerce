@@ -17,16 +17,40 @@
         </div>
         <div class="login-form">
           <div class="form-group">
-            <input type="email" class="form-control" placeholder="邮箱" v-model="email" />
+            <input 
+              type="email" 
+              class="form-control" 
+              placeholder="邮箱" 
+              v-model="email"
+              :disabled="loading"
+            />
           </div>
           <div class="verification-group">
-            <input type="text" class="verification-input" placeholder="验证码" v-model="verifyCode" />
-            <button class="verification-btn" @click="sendVerifyCode" :disabled="countdown > 0">{{ sendBtnText }}</button>
+            <input 
+              type="text" 
+              class="verification-input" 
+              placeholder="验证码" 
+              v-model="verifyCode"
+              :disabled="loading"
+            />
+            <button 
+              class="verification-btn" 
+              @click="sendVerifyCode" 
+              :disabled="countdown > 0 || loading"
+            >
+              {{ sendBtnText }}
+            </button>
           </div>
           <div class="forgot-password">
             <a href="#">忘记密码?</a>
           </div>
-          <button class="signin-btn" @click="login">SIGN IN</button>
+          <button 
+            class="signin-btn" 
+            @click="login"
+            :disabled="loading"
+          >
+            {{ loading ? '登录中...' : 'SIGN IN' }}
+          </button>
         </div>
       </div>
     </div>
@@ -34,110 +58,157 @@
 </template>
 
 <script setup lang="ts">
-// 登录页面逻辑
-import { ref } from 'vue';
-import { verificationApi } from '@/api/verification';
-import { useRouter } from 'vue-router';
+import { ref, onMounted, onUnmounted } from 'vue'
+import { useRouter } from 'vue-router'
+import { merchantApi } from '@/api/merchant'
+import { useAuthStore } from '@/store/modules/auth'
+import type { LoginResponse } from '@/store/modules/auth'
 
-const router = useRouter();
+const router = useRouter()
+const authStore = useAuthStore()
 
-// 邮箱和验证码
-const email = ref('');
-const verifyCode = ref('');
+// 响应式数据
+const email = ref('')
+const verifyCode = ref('')
+const loading = ref(false)
 
 // 倒计时逻辑
-const countdown = ref(0);
-const sendBtnText = ref('发送验证码');
-let timer: number | null = null;
+const countdown = ref(0)
+const sendBtnText = ref('发送验证码')
+let timer: number | null = null
 
 // 提示消息
-const message = ref('');
-const success = ref(false);
+const message = ref('')
+const success = ref(false)
 
 // 显示消息函数
 const showMessage = (msg: string, isSuccess: boolean) => {
-  message.value = msg;
-  success.value = isSuccess;
+  message.value = msg
+  success.value = isSuccess
   
   // 3秒后自动清除消息
   setTimeout(() => {
-    message.value = '';
-  }, 3000);
-};
+    message.value = ''
+  }, 3000)
+}
+
+// 验证邮箱格式
+const validateEmail = (email: string): boolean => {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+  return emailRegex.test(email)
+}
 
 // 发送邮箱验证码
 const sendVerifyCode = async () => {
-  // 如果正在倒计时，则不执行
-  if (countdown.value > 0) return;
+  // 如果正在倒计时或加载中，则不执行
+  if (countdown.value > 0 || loading.value) return
   
   // 验证邮箱格式
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!emailRegex.test(email.value)) {
-    showMessage('请输入有效的邮箱地址', false);
-    return;
+  if (!validateEmail(email.value)) {
+    showMessage('请输入有效的邮箱地址', false)
+    return
   }
   
+  loading.value = true
+  
   try {
-    // 调用验证码API
-    await verificationApi.sendVerificationCode(email.value, 'login');
-    showMessage('验证码已发送到您的邮箱', true);
+    const response = await merchantApi.sendLoginCode(email.value)
     
-    // 开始倒计时（60秒）
-    countdown.value = 60;
-    sendBtnText.value = `${countdown.value}秒后重新获取`;
-    
-    // 设置定时器
-    timer = window.setInterval(() => {
-      countdown.value--;
-      sendBtnText.value = `${countdown.value}秒后重新获取`;
+    if (response.data.success) {
+      showMessage('验证码已发送到您的邮箱', true)
       
-      if (countdown.value <= 0) {
-        sendBtnText.value = '发送验证码';
-        clearInterval(timer!);
-        timer = null;
-      }
-    }, 1000);
-  } catch (error) {
-    console.error('发送验证码失败:', error);
-    showMessage('发送验证码失败，请稍后重试', false);
+      // 开始倒计时（60秒）
+      countdown.value = 60
+      sendBtnText.value = `${countdown.value}秒后重新获取`
+      
+      // 设置定时器
+      timer = window.setInterval(() => {
+        countdown.value--
+        sendBtnText.value = `${countdown.value}秒后重新获取`
+        
+        if (countdown.value <= 0) {
+          sendBtnText.value = '发送验证码'
+          if (timer) {
+            clearInterval(timer)
+            timer = null
+          }
+        }
+      }, 1000)
+    } else {
+      showMessage(response.data.message || '发送验证码失败', false)
+    }
+  } catch (error: any) {
+    console.error('发送验证码失败:', error)
+    const errorMessage = error.response?.data?.message || '发送验证码失败，请稍后重试'
+    showMessage(errorMessage, false)
+  } finally {
+    loading.value = false
   }
-};
+}
 
 // 登录逻辑
 const login = async () => {
-  // 验证邮箱和验证码
-  if (!email.value) {
-    showMessage('请输入邮箱', false);
-    return;
+  // 验证输入
+  if (!email.value.trim()) {
+    showMessage('请输入邮箱', false)
+    return
   }
   
-  if (!verifyCode.value) {
-    showMessage('请输入验证码', false);
-    return;
+  if (!validateEmail(email.value)) {
+    showMessage('请输入有效的邮箱地址', false)
+    return
   }
+  
+  if (!verifyCode.value.trim()) {
+    showMessage('请输入验证码', false)
+    return
+  }
+  
+  loading.value = true
   
   try {
-    // 验证验证码
-    const response = await verificationApi.verifyCode(email.value, verifyCode.value, 'login');
+    const response = await merchantApi.login(email.value, verifyCode.value)
     
     if (response.data.success) {
-      showMessage('验证成功，正在登录...', true);
+      // 保存认证信息到store
+      authStore.setAuthData(response.data as LoginResponse)
       
-      // 这里可以添加调用登录API的逻辑
-      // ...
+      showMessage('登录成功，正在跳转...', true)
       
-      // 登录成功后跳转到商家后台
+      // 登录成功后跳转到商家后台（暂时跳转到dashboard，将来实现）
       setTimeout(() => {
-        router.push('/merchant/dashboard');
-      }, 1000);
+        router.push('/merchant/dashboard')
+      }, 1000)
     } else {
-      showMessage(response.data.message || '验证码错误', false);
+      showMessage(response.data.message || '登录失败', false)
     }
-  } catch (error) {
-    console.error('验证失败:', error);
-    showMessage('验证失败，请检查验证码是否正确', false);
+  } catch (error: any) {
+    console.error('登录失败:', error)
+    const errorMessage = error.response?.data?.message || '登录失败，请检查验证码是否正确'
+    showMessage(errorMessage, false)
+  } finally {
+    loading.value = false
   }
-};
+}
+
+// 组件挂载时检查是否已登录
+onMounted(() => {
+  // 初始化认证状态
+  authStore.initializeAuth()
+  
+  // 如果已登录，直接跳转到dashboard
+  if (authStore.isLoggedIn && !authStore.isTokenExpired()) {
+    router.push('/merchant/dashboard')
+  }
+})
+
+// 组件卸载时清理定时器
+onUnmounted(() => {
+  if (timer) {
+    clearInterval(timer)
+    timer = null
+  }
+})
 </script>
 
 <style scoped>
@@ -240,6 +311,16 @@ const login = async () => {
   outline: none;
   background-color: #FAFAFA;
   color: #333;
+  transition: border-color 0.3s;
+}
+
+.form-control:focus {
+  border-color: #10b5b8;
+}
+
+.form-control:disabled {
+  background-color: #f0f0f0;
+  cursor: not-allowed;
 }
 
 .form-control::placeholder {
@@ -262,6 +343,16 @@ const login = async () => {
   margin-right: 10px;
   background-color: #FAFAFA;
   color: #333;
+  transition: border-color 0.3s;
+}
+
+.verification-input:focus {
+  border-color: #10b5b8;
+}
+
+.verification-input:disabled {
+  background-color: #f0f0f0;
+  cursor: not-allowed;
 }
 
 .verification-input::placeholder {
@@ -278,9 +369,10 @@ const login = async () => {
   font-size: 14px;
   cursor: pointer;
   transition: background-color 0.3s;
+  white-space: nowrap;
 }
 
-.verification-btn:hover {  
+.verification-btn:hover:not(:disabled) {  
   background-color: #0e9a9d;
 }
 
@@ -311,8 +403,13 @@ const login = async () => {
   transition: background-color 0.3s;
 }
 
-.signin-btn:hover {
+.signin-btn:hover:not(:disabled) {
   background-color: #0e9a9d;
+}
+
+.signin-btn:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
 }
 
 .message {
@@ -321,6 +418,7 @@ const login = async () => {
   border-radius: 5px;
   text-align: center;
   font-size: 14px;
+  animation: fadeIn 0.3s ease-in;
 }
 
 .error {
@@ -333,5 +431,16 @@ const login = async () => {
   background-color: #e8f5e9;
   color: #388e3c;
   border: 1px solid #c8e6c9;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 </style> 

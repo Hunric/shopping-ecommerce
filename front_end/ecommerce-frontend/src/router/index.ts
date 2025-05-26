@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import MerchantLogin from '@/views/merchant/login/index.vue'
 import MerchantRegister from '@/views/merchant/register/index.vue'
+import MerchantDashboard from '@/views/merchant/dashboard/index.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -18,6 +19,11 @@ const router = createRouter({
       path: '/merchant/register',
       name: 'merchantRegister',
       component: MerchantRegister
+    },
+    {
+      path: '/merchant/dashboard',
+      name: 'merchantDashboard',
+      component: MerchantDashboard
     }
   ]
 })

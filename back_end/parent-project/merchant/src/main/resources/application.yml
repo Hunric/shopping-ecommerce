@@ -1,15 +1,20 @@
+# 商家服务配置
 server:
-  port: 8080
+  port: 8081
   servlet:
     context-path: /merchant
 
 spring:
   application:
     name: merchant-service
+  
+  # 启用生产环境配置以使用真实邮件服务
+  profiles:
+    active: prod
     
   # 启用数据库配置
   datasource:
-    url: jdbc:mysql://localhost:3306/ecommerce_db?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=Asia/Shanghai
+    url: jdbc:mysql://localhost:3306/ecommerce_db?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai
     username: root
     password: 123456
     driver-class-name: com.mysql.cj.jdbc.Driver
@@ -20,32 +25,38 @@ spring:
     baseline-on-migrate: true
     locations: classpath:db/migration
     
-  # 邮件服务配置
+  # 邮件服务配置 - 真实163邮箱配置
   mail:
-    host: smtp.163.com   # 邮件服务器地址
-    port: 465            # 邮件服务器端口
-    username: 18579776220@163.com  # 邮箱账号
-    password: VUZjaRxJP74HHFRZ      # 邮箱授权码（不是登录密码）
-    default-encoding: UTF-8
+    host: smtp.163.com
+    port: 465
+    username: 18579776220@163.com
+    password: RWpSmbKNgiNa24ib
     properties:
       mail:
         smtp:
           auth: true
           ssl:
             enable: true
-          starttls:
-            enable: true
             required: true
+            trust: smtp.163.com
+          socketFactory:
+            class: javax.net.ssl.SSLSocketFactory
+            port: 465
+            fallback: false
 
-  # Redis配置
-  data:
-    redis:
-      host: localhost
-      port: 6379
-      timeout: 5000
-      password:
-      database: 0
-
+# Redis配置
+redis:
+  host: localhost
+  port: 6379
+  password:
+  database: 0
+  timeout: 5000ms
+  lettuce:
+    pool:
+      max-active: 8
+      max-wait: -1ms
+      max-idle: 8
+      min-idle: 0
 
 # MyBatis配置
 mybatis:
@@ -54,8 +65,16 @@ mybatis:
   configuration:
     map-underscore-to-camel-case: true
     
+# JWT配置
+jwt:
+  secret: hunric-shopping-ecommerce-merchant-jwt-secret-key-2024-very-long-secret
+  expiration: 86400000  # 24小时（毫秒）
+  refresh-expiration: 604800000  # 7天（毫秒）
+
 # 日志配置
 logging:
   level:
-    com.hunric: debug
-    org.springframework: info 
+    com.hunric: DEBUG
+    org.springframework.security: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n" 

@@ -27,10 +27,10 @@ public interface MerchantMapper {
     
     /**
      * 根据ID查询商家
-     * @param id 商家ID
+     * @param merchantId 商家ID
      * @return 商家对象
      */
-    Merchant selectById(@Param("id") Long id);
+    Merchant selectById(@Param("merchantId") Long merchantId);
     
     /**
      * 根据邮箱查询商家
@@ -48,17 +48,17 @@ public interface MerchantMapper {
     
     /**
      * 根据营业执照编号查询商家
-     * @param licenseNumber 营业执照编号
+     * @param businessLicenseNo 营业执照编号
      * @return 商家对象
      */
-    Merchant selectByLicenseNumber(@Param("licenseNumber") String licenseNumber);
+    Merchant selectByBusinessLicenseNo(@Param("businessLicenseNo") String businessLicenseNo);
     
     /**
      * 根据法人身份证号查询商家
-     * @param legalPersonId 法人身份证号
+     * @param legalPersonIdCard 法人身份证号
      * @return 商家对象
      */
-    Merchant selectByLegalPersonId(@Param("legalPersonId") String legalPersonId);
+    Merchant selectByLegalPersonIdCard(@Param("legalPersonIdCard") String legalPersonIdCard);
     
     /**
      * 根据条件查询商家列表
@@ -66,12 +66,4 @@ public interface MerchantMapper {
      * @return 商家列表
      */
     List<Merchant> selectList(Merchant merchant);
-    
-    /**
-     * 更新商家状态
-     * @param id 商家ID
-     * @param status 新状态
-     * @return 影响的行数
-     */
-    int updateStatus(@Param("id") Long id, @Param("status") Integer status);
 } 
