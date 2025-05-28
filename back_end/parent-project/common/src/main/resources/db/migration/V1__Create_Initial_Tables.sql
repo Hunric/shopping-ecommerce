@@ -52,7 +52,7 @@ CREATE TABLE IF NOT EXISTS merchant_info (
     UNIQUE KEY uk_merchant_name (merchant_name)
 ) COMMENT '商家基础信息表';
 
--- 店铺信息表
+-- 店铺信息表（包含扩展字段）
 -- 引用自store_info.sql
 CREATE TABLE IF NOT EXISTS store_info (
     store_id INT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '店铺id',
@@ -60,12 +60,19 @@ CREATE TABLE IF NOT EXISTS store_info (
     store_name VARCHAR(50) NOT NULL COMMENT '店铺名称',
     store_logo VARCHAR(255) COMMENT '店铺Logo URL',
     store_description TEXT COMMENT '店铺描述',
+    category VARCHAR(50) COMMENT '经营类目',
+    service_promise JSON COMMENT '服务承诺（JSON数组）',
+    service_phone VARCHAR(20) COMMENT '客服电话',
+    service_email VARCHAR(100) COMMENT '客服邮箱',
+    business_hours VARCHAR(100) COMMENT '营业时间',
     open_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '开店时间',
     status ENUM('open', 'closed', 'suspended') NOT NULL DEFAULT 'open' COMMENT '店铺状态',
     credit_score INT NOT NULL DEFAULT 100 COMMENT '店铺信用分',
+    create_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    update_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     PRIMARY KEY (store_id),
     INDEX idx_merchant_id (merchant_id)
-) COMMENT '店铺信息表';
+) COMMENT '店铺信息表（包含扩展字段）';
 
 -- 结算信息表
 -- 引用自settlement_info.sql
@@ -81,39 +88,44 @@ CREATE TABLE IF NOT EXISTS settlement_info (
     INDEX idx_merchant_id (merchant_id)
 ) COMMENT '结算信息表';
 
--- 商品分类表
+-- 商品分类表（基于店铺的分类管理）
 -- 引用自product_category.sql
 CREATE TABLE IF NOT EXISTS product_category (
     category_id INT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '分类id',
+    store_id INT UNSIGNED NOT NULL COMMENT '店铺id',
     parent_id INT UNSIGNED DEFAULT NULL COMMENT '父分类id',
     category_name VARCHAR(50) NOT NULL COMMENT '分类名称',
+    description VARCHAR(50) COMMENT '分类描述',
     category_level TINYINT NOT NULL COMMENT '分类层级',
     sort_order INT NOT NULL DEFAULT 0 COMMENT '排序字段',
     is_visible TINYINT(1) NOT NULL DEFAULT 1 COMMENT '是否可见',
     icon_url VARCHAR(255) COMMENT '分类图标URL',
     create_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     PRIMARY KEY (category_id),
-    INDEX idx_parent_id (parent_id)
-) COMMENT '商品分类表';
+    INDEX idx_store_id (store_id),
+    INDEX idx_parent_id (parent_id),
+    CONSTRAINT fk_category_store FOREIGN KEY (store_id) REFERENCES store_info(store_id),
+    CONSTRAINT uk_store_category_name UNIQUE (store_id, category_name)
+) COMMENT '商品分类表（基于店铺）';
 
--- 分类属性表
+-- 分类属性表（基于店铺的属性管理）
 -- 引用自category_attribute.sql
 CREATE TABLE IF NOT EXISTS category_attribute (
     attribute_id INT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '属性id',
+    store_id INT UNSIGNED NOT NULL COMMENT '店铺id',
     category_id INT UNSIGNED NOT NULL COMMENT '分类id',
     attribute_name VARCHAR(50) NOT NULL COMMENT '属性名称',
     attribute_type ENUM('TEXT', 'NUMBER', 'DATE', 'BOOLEAN', 'ENUM') NOT NULL COMMENT '属性类型',
+    is_basic_attribute TINYINT(1) NOT NULL DEFAULT 0 COMMENT '是否基础属性',
     is_required TINYINT(1) NOT NULL DEFAULT 0 COMMENT '是否必填',
-    is_spec TINYINT(1) NOT NULL DEFAULT 0 COMMENT '是否为规格属性(影响SKU生成)',
-    is_searchable TINYINT(1) NOT NULL DEFAULT 0 COMMENT '是否可搜索',
-    input_type ENUM('INPUT', 'SELECT', 'RADIO', 'CHECKBOX', 'TEXTAREA') NOT NULL DEFAULT 'INPUT' COMMENT '输入类型',
-    attribute_unit VARCHAR(10) COMMENT '属性单位(如：kg, cm)',
-    sort_order INT NOT NULL DEFAULT 0 COMMENT '排序字段',
-    create_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     PRIMARY KEY (attribute_id),
+    INDEX idx_store_id (store_id),
     INDEX idx_category_id (category_id),
-    INDEX idx_attribute_name (attribute_name)
-) COMMENT '分类属性表';
+    INDEX idx_attribute_name (attribute_name),
+    CONSTRAINT fk_attribute_store FOREIGN KEY (store_id) REFERENCES store_info(store_id),
+    CONSTRAINT fk_attribute_category FOREIGN KEY (category_id) REFERENCES product_category(category_id),
+    CONSTRAINT uk_store_category_attribute UNIQUE (store_id, category_id, attribute_name)
+) COMMENT '分类属性表（基于店铺）';
 
 -- 属性可选值表
 -- 引用自attribute_option.sql
@@ -121,52 +133,59 @@ CREATE TABLE IF NOT EXISTS attribute_option (
     option_id INT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '选项id',
     attribute_id INT UNSIGNED NOT NULL COMMENT '属性id',
     option_value VARCHAR(50) NOT NULL COMMENT '选项值',
-    sort_order INT NOT NULL DEFAULT 0 COMMENT '排序字段',
     PRIMARY KEY (option_id),
-    INDEX idx_attribute_id (attribute_id)
+    INDEX idx_attribute_id (attribute_id),
+    CONSTRAINT fk_option_attribute FOREIGN KEY (attribute_id) REFERENCES category_attribute(attribute_id)
 ) COMMENT '属性可选值表';
 
 -- 商品SPU表(标准化产品单元)
 -- 引用自spu_info.sql
 CREATE TABLE IF NOT EXISTS spu_info (
-    spu_id INT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT 'SPU ID',
-    store_id INT UNSIGNED NOT NULL COMMENT '店铺ID',
-    category_id INT UNSIGNED NOT NULL COMMENT '分类ID',
-    spu_name VARCHAR(100) NOT NULL COMMENT 'SPU名称',
-    spu_description TEXT COMMENT 'SPU描述',
+    product_id INT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '商品id (SPU id)',
+    merchant_id INT UNSIGNED NOT NULL COMMENT '商家id',
+    store_id INT UNSIGNED NOT NULL COMMENT '店铺id',
+    category_id INT UNSIGNED NOT NULL COMMENT '分类id（必须为叶子节点）',
+    product_name VARCHAR(20) NOT NULL COMMENT '商品名',
+    description VARCHAR(100) COMMENT '商品描述',
+    image_url LONGTEXT COMMENT '商品图片链接或Base64数据',
+    display_price DECIMAL(10,2) NOT NULL COMMENT '商品展示价格（非实际价格）',
+    basic_attributes JSON NOT NULL COMMENT '基础属性值',
+    non_basic_attributes JSON NOT NULL COMMENT '非基础属性值',
     brand_name VARCHAR(50) COMMENT '品牌名称',
-    main_image_url VARCHAR(255) NOT NULL COMMENT '主图URL',
-    image_urls JSON COMMENT '图片URLs(JSON数组)',
     selling_point TEXT COMMENT '卖点描述',
     unit VARCHAR(10) NOT NULL DEFAULT '件' COMMENT '单位(如：件/台/套)',
-    attributes JSON COMMENT '商品属性(JSON格式)',
-    status ENUM('draft', 'pending', 'approved', 'rejected', 'on_shelf', 'off_shelf') NOT NULL DEFAULT 'draft' COMMENT '状态',
+    status VARCHAR(20) NOT NULL DEFAULT 'draft' COMMENT '状态: draft-草稿, on_shelf-上架, off_shelf-下架',
     create_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     update_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-    PRIMARY KEY (spu_id),
+    PRIMARY KEY (product_id),
+    UNIQUE KEY uk_store_product_name (store_id, product_name),
+    INDEX idx_merchant_id (merchant_id),
     INDEX idx_store_id (store_id),
     INDEX idx_category_id (category_id),
-    INDEX idx_spu_name (spu_name)
+    INDEX idx_product_name (product_name),
+    INDEX idx_status (status),
+    INDEX idx_store_status (store_id, status)
 ) COMMENT '商品SPU表';
 
 -- 商品SKU表(库存量单位)
 -- 引用自sku_info.sql
 CREATE TABLE IF NOT EXISTS sku_info (
-    sku_id INT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT 'SKU ID',
-    spu_id INT UNSIGNED NOT NULL COMMENT 'SPU ID',
-    sku_code VARCHAR(50) NOT NULL COMMENT 'SKU编码',
-    specifications JSON NOT NULL COMMENT '规格(JSON格式,如{"颜色":"红色","尺寸":"XL"})',
-    price DECIMAL(10,2) NOT NULL COMMENT '价格',
-    stock_quantity INT NOT NULL DEFAULT 0 COMMENT '库存数量',
-    warn_stock INT NOT NULL DEFAULT 10 COMMENT '库存警告阈值',
-    sku_image_url VARCHAR(255) COMMENT 'SKU图片URL',
-    sku_status ENUM('available', 'unavailable') NOT NULL DEFAULT 'available' COMMENT 'SKU状态',
+    sku_id INT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT 'SKU id',
+    product_id INT UNSIGNED NOT NULL COMMENT '商品（SPU）id',
+    sku_name VARCHAR(255) NOT NULL COMMENT 'SKU名称（通过基础属性值生成）',
+    sale_price DECIMAL(10,2) NOT NULL DEFAULT 0.00 COMMENT '销售价格',
+    stock_quantity INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '库存数量',
+    attribute_combination JSON NOT NULL COMMENT '具体属性值组合（由后端生成）',
+    status TINYINT NOT NULL DEFAULT 2 COMMENT '状态：1-上架，2-下架，3-库存不足',
+    exclusive_image_url LONGTEXT COMMENT '专属图片链接（默认：所属SPU图片链接）',
+    warn_stock INT UNSIGNED NOT NULL DEFAULT 10 COMMENT '库存警告阈值',
     create_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     update_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     PRIMARY KEY (sku_id),
-    INDEX idx_spu_id (spu_id),
-    UNIQUE KEY uk_sku_code (sku_code)
-) COMMENT '商品SKU表';
+    UNIQUE KEY uk_sku_name_spu (product_id, sku_name),
+    INDEX idx_product_id (product_id),
+    INDEX idx_status (status)
+) COMMENT 'SKU表（库存量单位）';
 
 -- 购物车表
 -- 引用自cart_info.sql

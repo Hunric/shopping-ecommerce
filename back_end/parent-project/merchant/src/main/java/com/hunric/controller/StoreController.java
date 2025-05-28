@@ -17,7 +17,6 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/merchant/store")
 @Slf4j
-@CrossOrigin(origins = "*")
 public class StoreController {
 
     @Autowired
@@ -99,14 +98,6 @@ public class StoreController {
             String storeLogo = (String) requestBody.get("storeLogo");
             String storeDescription = (String) requestBody.get("storeDescription");
             
-            if (merchantId == null || merchantId <= 0) {
-                return ResponseEntity.ok(ApiResponse.error("商家ID不能为空"));
-            }
-            
-            if (storeName == null || storeName.trim().isEmpty()) {
-                return ResponseEntity.ok(ApiResponse.error("店铺名称不能为空"));
-            }
-            
             ApiResponse<StoreDTO> response = storeService.createStore(merchantId, storeName, storeLogo, storeDescription);
             
             if (response.isSuccess()) {
@@ -185,6 +176,36 @@ public class StoreController {
         } catch (Exception e) {
             log.error("删除店铺异常", e);
             return ResponseEntity.ok(ApiResponse.error("删除店铺过程中发生异常: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * 获取商家店铺统计信息
+     * 
+     * @param merchantId 商家ID
+     * @return 统计信息
+     */
+    @GetMapping("/count/{merchantId}")
+    public ResponseEntity<ApiResponse<Integer>> getStoreCount(@PathVariable Integer merchantId) {
+        log.info("获取商家店铺统计请求: merchantId={}", merchantId);
+        
+        try {
+            if (merchantId == null || merchantId <= 0) {
+                return ResponseEntity.ok(ApiResponse.error("商家ID不能为空"));
+            }
+            
+            ApiResponse<Integer> response = storeService.getStoreCount(merchantId);
+            
+            if (response.isSuccess()) {
+                log.info("获取商家店铺统计成功: merchantId={}, count={}", merchantId, response.getData());
+            } else {
+                log.warn("获取商家店铺统计失败: merchantId={}, 原因: {}", merchantId, response.getMessage());
+            }
+            
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            log.error("获取商家店铺统计异常", e);
+            return ResponseEntity.ok(ApiResponse.error("获取店铺统计过程中发生异常: " + e.getMessage()));
         }
     }
 } 

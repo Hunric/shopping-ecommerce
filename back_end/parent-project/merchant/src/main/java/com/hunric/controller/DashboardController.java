@@ -14,7 +14,6 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/merchant/dashboard")
 @Slf4j
-@CrossOrigin(origins = "*")
 public class DashboardController {
 
     @Autowired

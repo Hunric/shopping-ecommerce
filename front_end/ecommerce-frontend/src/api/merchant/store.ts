@@ -1,6 +1,6 @@
-import axios from 'axios'
+import request from '@/utils/request'
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8081/merchant'
 
 // 店铺信息接口
 export interface Store {
@@ -37,12 +37,28 @@ export interface ApiResponse<T> {
   data: T
 }
 
+// 店铺创建数据接口
+export interface StoreCreateData {
+  merchantId: number
+  storeName: string
+  storeLogo?: string
+  storeDescription?: string
+}
+
+// 店铺更新数据接口
+export interface StoreUpdateData {
+  storeName?: string
+  storeLogo?: string
+  storeDescription?: string
+  status?: string
+}
+
 /**
- * 根据商家ID获取店铺列表
+ * 获取商家的店铺列表
  */
 export const getStoresByMerchantId = async (merchantId: number): Promise<ApiResponse<Store[]>> => {
   try {
-    const response = await axios.get(`${API_BASE_URL}/api/merchant/store/list/${merchantId}`)
+    const response = await request.get(`/api/merchant/store/list/${merchantId}`)
     return response.data
   } catch (error) {
     console.error('获取店铺列表失败:', error)
@@ -55,7 +71,7 @@ export const getStoresByMerchantId = async (merchantId: number): Promise<ApiResp
  */
 export const getStoreById = async (storeId: number): Promise<ApiResponse<Store>> => {
   try {
-    const response = await axios.get(`${API_BASE_URL}/api/merchant/store/${storeId}`)
+    const response = await request.get(`/api/merchant/store/${storeId}`)
     return response.data
   } catch (error) {
     console.error('获取店铺信息失败:', error)
@@ -66,9 +82,9 @@ export const getStoreById = async (storeId: number): Promise<ApiResponse<Store>>
 /**
  * 创建店铺
  */
-export const createStore = async (storeData: CreateStoreRequest): Promise<ApiResponse<Store>> => {
+export const createStore = async (storeData: StoreCreateData): Promise<ApiResponse<Store>> => {
   try {
-    const response = await axios.post(`${API_BASE_URL}/api/merchant/store/create`, storeData)
+    const response = await request.post('/api/merchant/store/create', storeData)
     return response.data
   } catch (error) {
     console.error('创建店铺失败:', error)
@@ -79,9 +95,9 @@ export const createStore = async (storeData: CreateStoreRequest): Promise<ApiRes
 /**
  * 更新店铺信息
  */
-export const updateStore = async (storeId: number, storeData: UpdateStoreRequest): Promise<ApiResponse<Store>> => {
+export const updateStore = async (storeId: number, storeData: StoreUpdateData): Promise<ApiResponse<Store>> => {
   try {
-    const response = await axios.put(`${API_BASE_URL}/api/merchant/store/${storeId}`, storeData)
+    const response = await request.put(`/api/merchant/store/${storeId}`, storeData)
     return response.data
   } catch (error) {
     console.error('更新店铺失败:', error)
@@ -94,10 +110,23 @@ export const updateStore = async (storeId: number, storeData: UpdateStoreRequest
  */
 export const deleteStore = async (storeId: number): Promise<ApiResponse<string>> => {
   try {
-    const response = await axios.delete(`${API_BASE_URL}/api/merchant/store/${storeId}`)
+    const response = await request.delete(`/api/merchant/store/${storeId}`)
     return response.data
   } catch (error) {
     console.error('删除店铺失败:', error)
+    throw error
+  }
+}
+
+/**
+ * 获取商家店铺数量
+ */
+export const getStoreCount = async (merchantId: number): Promise<ApiResponse<number>> => {
+  try {
+    const response = await request.get(`/api/merchant/store/count/${merchantId}`)
+    return response.data
+  } catch (error) {
+    console.error('获取店铺数量失败:', error)
     throw error
   }
 } 

@@ -24,6 +24,8 @@ public class StoreDTO {
     private LocalDateTime openTime;
     private String status;
     private Integer creditScore;
+    private LocalDateTime createTime;
+    private LocalDateTime updateTime;
 }
 
 /**

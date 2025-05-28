@@ -10,7 +10,7 @@
           <el-avatar :size="32" src="/images/default-avatar.png" />
           <span>{{ merchantInfo?.merchantName }}</span>
           <el-dropdown @command="handleCommand">
-            <el-button type="text" class="dropdown-btn">
+            <el-button link class="dropdown-btn">
               <el-icon><ArrowDown /></el-icon>
             </el-button>
             <template #dropdown>
@@ -42,6 +42,11 @@
           <el-menu-item index="store-management">
             <el-icon><Shop /></el-icon>
             <template #title>店铺管理</template>
+          </el-menu-item>
+          
+          <el-menu-item index="category-management">
+            <el-icon><Menu /></el-icon>
+            <template #title>分类管理</template>
           </el-menu-item>
           
           <el-menu-item index="order-management">
@@ -237,14 +242,42 @@
           <div v-else-if="currentView === 'create'" class="store-create-view">
             <div class="page-header">
               <h2>新建店铺</h2>
+              <div class="header-actions">
+                <div class="draft-info" v-if="draftCount > 0">
+                  <el-tag type="info" size="small">
+                    <el-icon><Document /></el-icon>
+                    {{ draftCount }} 个草稿
+                  </el-tag>
+                </div>
+                <el-button @click="currentView = 'list'">
+                  <el-icon><ArrowLeft /></el-icon>
+                  返回列表
+                </el-button>
+              </div>
+            </div>
+            <StoreForm
+              :use-extended-api="useExtendedApi"
+              @cancel="currentView = 'list'"
+              @success="handleStoreSuccess"
+            />
+          </div>
+
+          <!-- 编辑店铺视图 -->
+          <div v-else-if="currentView === 'edit'" class="store-edit-view">
+            <div class="page-header">
+              <h2>编辑店铺信息</h2>
               <el-button @click="currentView = 'list'">
                 <el-icon><ArrowLeft /></el-icon>
                 返回列表
               </el-button>
             </div>
             <StoreForm
+              v-if="currentStore"
+              :edit-store="currentStore"
+              :use-extended-api="useExtendedApi"
+              mode="edit"
               @cancel="currentView = 'list'"
-              @success="handleStoreCreateSuccess"
+              @success="handleStoreSuccess"
             />
           </div>
 
@@ -258,8 +291,6 @@
             />
           </div>
         </div>
-
-
 
         <!-- 订单管理 -->
         <div v-else-if="activeMenu === 'order-management'" class="order-management-content">
@@ -327,6 +358,26 @@
           </div>
         </div>
 
+        <!-- 分类管理 -->
+        <div v-else-if="activeMenu === 'category-management'" class="category-management-content">
+          <div class="management-tabs">
+            <el-tabs v-model="categoryActiveTab" @tab-change="handleCategoryTabChange">
+              <el-tab-pane label="分类管理" name="categories">
+                <CategoryManagement 
+                  v-if="categoryActiveTab === 'categories'"
+                  @switch-to-attributes="handleSwitchToAttributes" 
+                />
+              </el-tab-pane>
+              <el-tab-pane label="属性管理" name="attributes">
+                <AttributeManagement 
+                  v-if="categoryActiveTab === 'attributes'"
+                  :selected-category="selectedCategoryForAttributes" 
+                />
+              </el-tab-pane>
+            </el-tabs>
+          </div>
+        </div>
+
         <!-- 数据分析 -->
         <div v-else-if="activeMenu === 'analytics'" class="analytics-content">
           <div class="page-header">
@@ -381,28 +432,31 @@ import {
 import {
   ArrowDown, DataBoard, User, Shop, Goods, Document, 
   TrendCharts, Fold, Expand, Plus, ArrowLeft, Money,
-  Search, Refresh, Edit, Switch, Clock, Van, Check
+  Search, Refresh, Edit, Switch, Clock, Van, Check, Menu
 } from '@element-plus/icons-vue'
 
 // 导入API服务
 import { getDashboardStats } from '@/api/merchant/dashboard'
 import type { DashboardStats } from '@/api/merchant/dashboard'
+import { getStoresByMerchantId, createStore, updateStore, deleteStore } from '@/api/merchant/store'
+import type { Store, StoreCreateData, StoreUpdateData } from '@/api/merchant/store'
+import { 
+  getStoresExtendedByMerchantId, 
+  createStoreExtended, 
+  updateStoreExtended, 
+  deleteStoreExtended 
+} from '@/api/merchant/storeExtended'
+import type { StoreExtended, StoreExtendedCreateData, StoreExtendedUpdateData } from '@/api/merchant/storeExtended'
+import { draftService } from '@/services/draftService'
 
 // 导入组件
 import ProductManagement from '@/components/merchant/ProductManagement.vue'
 import OrderList from '@/components/merchant/OrderList.vue'
 import StoreForm from '@/components/merchant/StoreForm.vue'
+import CategoryManagement from '@/components/merchant/CategoryManagement.vue'
+import AttributeManagement from '@/components/merchant/AttributeManagement.vue'
 
-// 定义店铺类型
-interface Store {
-  storeId: number
-  storeName: string
-  storeLogo?: string
-  storeDescription?: string
-  openTime: string
-  status: string
-  creditScore: number
-}
+// 店铺类型已从API模块导入
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -411,7 +465,7 @@ const authStore = useAuthStore()
 const activeMenu = ref('overview')
 const isCollapse = ref(false)
 const currentView = ref('list') // 当前视图：list, create, products
-const currentStore = ref<Store | null>(null) // 当前选中的店铺
+const currentStore = ref<StoreExtended | null>(null) // 当前选中的店铺
 
 // Dashboard统计数据
 const storeCount = ref(0)
@@ -425,10 +479,11 @@ const monthlyOrderCount = ref(0)
 
 // 店铺管理数据
 const storeLoading = ref(false)
-const stores = ref<Store[]>([])
+const stores = ref<StoreExtended[]>([])
 const searchKeyword = ref('')
 const statusFilter = ref('')
 const merchantInfoDialogVisible = ref(false)
+const useExtendedApi = ref(true) // 使用扩展API
 
 // 订单管理数据
 const activeOrderTab = ref('all')
@@ -437,6 +492,13 @@ const totalOrders = ref(0)
 const pendingOrders = ref(0)
 const shippedOrders = ref(0)
 const completedOrders = ref(0)
+
+// 草稿数量
+const draftCount = ref(0)
+
+// 分类管理标签页
+const categoryActiveTab = ref('categories')
+const selectedCategoryForAttributes = ref<any>(null)
 
 // 计算属性
 const merchantInfo = computed(() => authStore.merchantInfo)
@@ -501,6 +563,15 @@ const handleMenuSelect = (index: string) => {
   // 重置视图状态
   if (index === 'store-management') {
     currentView.value = 'list'
+    loadDraftCount() // 加载草稿数量
+  }
+}
+
+// 加载草稿数量
+const loadDraftCount = () => {
+  if (authStore.merchantInfo?.merchantId) {
+    const drafts = draftService.getDraftsByMerchant(authStore.merchantInfo.merchantId)
+    draftCount.value = drafts.length
   }
 }
 
@@ -540,40 +611,26 @@ const loadDashboardStats = async () => {
 const loadStores = async () => {
   storeLoading.value = true
   try {
-    // 模拟数据，实际应该调用API
-    const mockStores: Store[] = [
-      {
-        storeId: 1,
-        storeName: '时尚服装店',
-        storeLogo: 'https://via.placeholder.com/200x200/409EFF/FFFFFF?text=Logo1',
-        storeDescription: '专营时尚女装，品质保证，款式新颖',
-        openTime: '2024-06-01T10:00:00',
-        status: 'open',
-        creditScore: 98
-      },
-      {
-        storeId: 2,
-        storeName: '数码科技馆',
-        storeLogo: 'https://via.placeholder.com/200x200/67C23A/FFFFFF?text=Logo2',
-        storeDescription: '最新数码产品，正品保障，售后无忧',
-        openTime: '2024-09-01T10:00:00',
-        status: 'open',
-        creditScore: 95
-      },
-      {
-        storeId: 3,
-        storeName: '美食天地',
-        storeLogo: 'https://via.placeholder.com/200x200/E6A23C/FFFFFF?text=Logo3',
-        storeDescription: '精选美食，新鲜直达，品味生活',
-        openTime: '2024-11-01T10:00:00',
-        status: 'suspended',
-        creditScore: 92
-      }
-    ]
-    stores.value = mockStores
+    if (!authStore.merchantInfo?.merchantId) {
+      ElMessage.warning('商家信息不完整，请重新登录')
+      return
+    }
+    
+    const response = useExtendedApi.value 
+      ? await getStoresExtendedByMerchantId(authStore.merchantInfo.merchantId)
+      : await getStoresByMerchantId(authStore.merchantInfo.merchantId)
+      
+    if (response.success && response.data) {
+      stores.value = response.data as StoreExtended[]
+      console.log('加载店铺列表成功:', response.data)
+    } else {
+      ElMessage.error(response.message || '获取店铺列表失败')
+      stores.value = []
+    }
   } catch (error) {
     console.error('加载店铺列表失败:', error)
-    ElMessage.error('加载店铺列表失败')
+    ElMessage.error('加载店铺列表失败，请稍后重试')
+    stores.value = []
   } finally {
     storeLoading.value = false
   }
@@ -591,17 +648,17 @@ const refreshStoreList = () => {
   loadStores()
 }
 
-const handleEditStore = (store: Store) => {
-  ElMessage.info(`编辑店铺: ${store.storeName}`)
-  // TODO: 实现编辑店铺功能
+const handleEditStore = (store: StoreExtended) => {
+  currentStore.value = store
+  currentView.value = 'edit'
 }
 
-const handleManageProducts = (store: Store) => {
+const handleManageProducts = (store: StoreExtended) => {
   currentStore.value = store
   currentView.value = 'products'
 }
 
-const toggleStoreStatus = async (store: Store) => {
+const toggleStoreStatus = async (store: StoreExtended) => {
   const newStatus = store.status === 'open' ? 'suspended' : 'open'
   const action = newStatus === 'open' ? '恢复营业' : '暂停营业'
   
@@ -616,12 +673,32 @@ const toggleStoreStatus = async (store: Store) => {
       }
     )
     
-    // 模拟API调用
-    store.status = newStatus
-    ElMessage.success(`${action}成功`)
+    // 调用API更新店铺状态
+    const response = useExtendedApi.value
+      ? await updateStoreExtended(store.storeId, { 
+          storeName: store.storeName,
+          storeDescription: store.storeDescription || '',
+          storeLogo: store.storeLogo,
+          category: store.category || '',
+          status: newStatus,
+          servicePromise: store.servicePromise || [],
+          servicePhone: store.servicePhone,
+          serviceEmail: store.serviceEmail,
+          businessHours: store.businessHours || '周一至周日 9:00-22:00'
+        })
+      : await updateStore(store.storeId, { status: newStatus })
+      
+    if (response.success && response.data) {
+      // 更新本地数据
+      store.status = newStatus
+      ElMessage.success(`${action}成功`)
+    } else {
+      ElMessage.error(response.message || `${action}失败`)
+    }
   } catch (error) {
     if (error !== 'cancel') {
-      ElMessage.error(`${action}失败`)
+      console.error(`${action}失败:`, error)
+      ElMessage.error(`${action}失败，请稍后重试`)
     }
   }
 }
@@ -728,18 +805,73 @@ const handleOrderTabChange = (tabName: string | number) => {
   activeOrderTab.value = String(tabName)
 }
 
-// 店铺创建成功处理
-const handleStoreCreateSuccess = (storeData: any) => {
-  // 将新店铺添加到列表中
-  stores.value.unshift(storeData)
-  
-  // 更新统计数据
-  storeCount.value = stores.value.length
-  
-  // 返回列表视图
-  currentView.value = 'list'
-  
-  ElMessage.success(`店铺"${storeData.storeName}"创建成功！`)
+const handleCategoryTabChange = (tabName: string | number) => {
+  categoryActiveTab.value = String(tabName)
+}
+
+const handleSwitchToAttributes = (category: any) => {
+  // 切换到属性管理标签页
+  categoryActiveTab.value = 'attributes'
+  selectedCategoryForAttributes.value = category
+  ElMessage.success(`已切换到"${category.categoryName}"的属性管理`)
+}
+
+// 统一的店铺操作成功处理
+const handleStoreSuccess = async (storeData: StoreCreateData | StoreUpdateData | StoreExtendedCreateData | StoreExtendedUpdateData, storeId?: number) => {
+  try {
+    if (storeId) {
+      // 更新操作
+      const response = useExtendedApi.value
+        ? await updateStoreExtended(storeId, storeData as StoreExtendedUpdateData)
+        : await updateStore(storeId, storeData as StoreUpdateData)
+        
+      if (response.success && response.data) {
+        // 更新本地店铺列表中的数据
+        const storeIndex = stores.value.findIndex(store => store.storeId === storeId)
+        if (storeIndex !== -1) {
+          stores.value[storeIndex] = response.data as StoreExtended
+        }
+        
+        // 返回列表视图
+        currentView.value = 'list'
+        currentStore.value = null
+        
+        ElMessage.success(`店铺"${response.data.storeName}"更新成功！`)
+        
+        // 重新加载Dashboard统计数据
+        await loadDashboardStats()
+      } else {
+        ElMessage.error(response.message || '更新店铺失败')
+      }
+    } else {
+      // 创建操作
+      const response = useExtendedApi.value
+        ? await createStoreExtended(storeData as StoreExtendedCreateData)
+        : await createStore(storeData as StoreCreateData)
+        
+      if (response.success && response.data) {
+        // 将新店铺添加到列表中
+        stores.value.unshift(response.data as StoreExtended)
+        
+        // 更新统计数据
+        storeCount.value = stores.value.length
+        
+        // 返回列表视图
+        currentView.value = 'list'
+        
+        ElMessage.success(`店铺"${response.data.storeName}"创建成功！`)
+        
+        // 重新加载Dashboard统计数据
+        await loadDashboardStats()
+      } else {
+        ElMessage.error(response.message || '创建店铺失败')
+      }
+    }
+  } catch (error) {
+    const action = storeId ? '更新' : '创建'
+    console.error(`${action}店铺失败:`, error)
+    ElMessage.error(`${action}店铺失败，请稍后重试`)
+  }
 }
 
 // 组件挂载时检查登录状态
@@ -758,6 +890,8 @@ onMounted(async () => {
   await loadStores()
   // 加载订单数据
   await loadOrders()
+  // 加载草稿数量
+  loadDraftCount()
 })
 </script>
 
@@ -867,6 +1001,17 @@ onMounted(async () => {
   margin-bottom: 24px;
   padding-bottom: 16px;
   border-bottom: 1px solid #e8e8e8;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.draft-info {
+  display: flex;
+  align-items: center;
 }
 
 .page-header h2 {
@@ -1129,6 +1274,29 @@ onMounted(async () => {
 
 .order-tabs-container {
   margin-top: 24px;
+}
+
+/* 分类管理样式 */
+.category-management-content {
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  height: 100%;
+}
+
+.management-tabs {
+  height: 100%;
+}
+
+.management-tabs :deep(.el-tabs__content) {
+  height: calc(100% - 40px);
+  overflow: hidden;
+}
+
+.management-tabs :deep(.el-tab-pane) {
+  height: 100%;
+  overflow: hidden;
 }
 
 @media (max-width: 768px) {

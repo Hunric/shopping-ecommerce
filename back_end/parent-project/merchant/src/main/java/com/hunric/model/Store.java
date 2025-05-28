@@ -8,7 +8,7 @@ import lombok.AllArgsConstructor;
 import java.time.LocalDateTime;
 
 /**
- * 店铺信息实体类
+ * 店铺实体类
  * 对应数据库表：store_info
  */
 @Data
@@ -56,4 +56,14 @@ public class Store {
      * 店铺信用分
      */
     private Integer creditScore;
+    
+    /**
+     * 创建时间
+     */
+    private LocalDateTime createTime;
+    
+    /**
+     * 更新时间
+     */
+    private LocalDateTime updateTime;
 } 

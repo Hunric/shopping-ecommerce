@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // API基础URL
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/merchant';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8081/merchant';
 
 // 验证码API
 export const verificationApi = {

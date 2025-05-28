@@ -1,6 +1,4 @@
-import axios from 'axios'
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'
+import request from '@/utils/request'
 
 // Dashboard统计数据接口
 export interface DashboardStats {
@@ -26,7 +24,7 @@ export interface ApiResponse<T> {
  */
 export const getDashboardStats = async (merchantId: number): Promise<ApiResponse<DashboardStats>> => {
   try {
-    const response = await axios.get(`${API_BASE_URL}/api/merchant/dashboard/stats/${merchantId}`)
+    const response = await request.get(`/api/merchant/dashboard/stats/${merchantId}`)
     return response.data
   } catch (error) {
     console.error('获取Dashboard统计数据失败:', error)

@@ -1,6 +1,8 @@
 package com.hunric.common.controller;
 
+import com.hunric.common.model.ApiResponse;
 import com.hunric.common.service.EmailService;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -13,7 +15,7 @@ import java.util.Map;
  */
 @RestController
 @RequestMapping("/api/verification")
-@CrossOrigin(origins = "*")
+@Slf4j
 public class VerificationController {
 
     private final EmailService emailService;

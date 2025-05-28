@@ -24,7 +24,11 @@ const merchantApi = {
    * @returns {Promise} - 返回Promise对象
    */
   register: (registerData: MerchantRegisterData) => {
-    return request.post('/api/merchant/register', registerData)
+    return request({
+      url: '/api/merchant/register',
+      method: 'post',
+      data: registerData
+    })
   },
 
   /**
@@ -33,7 +37,11 @@ const merchantApi = {
    * @returns {Promise} - 返回Promise对象
    */
   sendLoginCode: (email: string) => {
-    return request.post('/api/merchant/send-login-code', { email })
+    return request({
+      url: '/api/merchant/send-login-code',
+      method: 'post',
+      data: { email }
+    })
   },
 
   /**
@@ -43,9 +51,13 @@ const merchantApi = {
    * @returns {Promise} - 返回Promise对象
    */
   login: (email: string, verificationCode: string) => {
-    return request.post('/api/merchant/login', {
-      email,
-      verificationCode
+    return request({
+      url: '/api/merchant/login',
+      method: 'post',
+      data: {
+        email,
+        verificationCode
+      }
     })
   }
 }

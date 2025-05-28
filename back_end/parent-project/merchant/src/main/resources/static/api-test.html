@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>商品管理API测试界面</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        .content {
+            padding: 20px;
+        }
+        .api-section {
+            margin-bottom: 30px;
+            border: 1px solid #e0e0e0;
+            border-radius: 6px;
+            overflow: hidden;
+        }
+        .api-header {
+            background: #f8f9fa;
+            padding: 15px;
+            border-bottom: 1px solid #e0e0e0;
+            font-weight: bold;
+            color: #333;
+        }
+        .api-body {
+            padding: 20px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+            color: #555;
+        }
+        input, textarea, select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+        textarea {
+            height: 120px;
+            resize: vertical;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .btn-success { background: #28a745; }
+        .btn-success:hover { background: #1e7e34; }
+        .btn-danger { background: #dc3545; }
+        .btn-danger:hover { background: #c82333; }
+        .btn-warning { background: #ffc107; color: #212529; }
+        .btn-warning:hover { background: #e0a800; }
+        .response {
+            margin-top: 15px;
+            padding: 15px;
+            background: #f8f9fa;
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+            white-space: pre-wrap;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .response.success {
+            background: #d4edda;
+            border-color: #c3e6cb;
+            color: #155724;
+        }
+        .response.error {
+            background: #f8d7da;
+            border-color: #f5c6cb;
+            color: #721c24;
+        }
+        .row {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 15px;
+        }
+        .col {
+            flex: 1;
+        }
+        .base-url {
+            background: #e9ecef;
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>商品管理API测试界面</h1>
+            <p>测试SPU和SKU管理的所有API接口</p>
+        </div>
+        
+        <div class="content">
+            <div class="base-url">
+                <strong>基础URL:</strong> <span id="baseUrl">http://localhost:8081</span>
+                <button onclick="changeBaseUrl()">修改</button>
+            </div>
+
+            <!-- SPU管理API -->
+            <div class="api-section">
+                <div class="api-header">SPU管理API</div>
+                <div class="api-body">
+                    <!-- 创建SPU -->
+                    <h4>1. 创建SPU</h4>
+                    <div class="form-group">
+                        <label>SPU数据 (JSON):</label>
+                        <textarea id="createSpuData">{
+  "merchantId": 1,
+  "storeId": 1,
+  "categoryId": 1,
+  "spuName": "测试商品",
+  "spuDescription": "这是一个测试商品",
+  "productImage": "http://example.com/image.jpg",
+  "displayPrice": 99.99,
+  "basicAttributes": {
+    "颜色": ["红色", "蓝色"],
+    "尺寸": ["S", "M", "L"]
+  },
+  "nonBasicAttributes": {
+    "材质": "棉质",
+    "产地": "中国"
+  },
+  "brandName": "测试品牌",
+  "sellingPoint": "高质量测试商品",
+  "unit": "件",
+  "skus": [
+    {
+      "skuName": "红色-S",
+      "salePrice": 89.99,
+      "stockQuantity": 100,
+      "attributeCombination": {
+        "颜色": "红色",
+        "尺寸": "S"
+      },
+      "status": 1,
+      "warnStock": 10
+    }
+  ]
+}</textarea>
+                    </div>
+                    <button onclick="createSpu()">创建SPU</button>
+                    <div id="createSpuResponse" class="response"></div>
+
+                    <!-- 获取SPU列表 -->
+                    <h4>2. 获取SPU列表</h4>
+                    <div class="row">
+                        <div class="col">
+                            <label>店铺ID:</label>
+                            <input type="number" id="listStoreId" value="1">
+                        </div>
+                        <div class="col">
+                            <label>分类ID:</label>
+                            <input type="number" id="listCategoryId" placeholder="可选">
+                        </div>
+                        <div class="col">
+                            <label>关键词:</label>
+                            <input type="text" id="listKeyword" placeholder="可选">
+                        </div>
+                        <div class="col">
+                            <label>状态:</label>
+                            <select id="listStatus">
+                                <option value="">全部</option>
+                                <option value="draft">草稿</option>
+                                <option value="on_shelf">上架</option>
+                                <option value="off_shelf">下架</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col">
+                            <label>页码:</label>
+                            <input type="number" id="listPage" value="1">
+                        </div>
+                        <div class="col">
+                            <label>每页数量:</label>
+                            <input type="number" id="listPageSize" value="10">
+                        </div>
+                    </div>
+                    <button onclick="getSpuList()">获取SPU列表</button>
+                    <div id="getSpuListResponse" class="response"></div>
+
+                    <!-- 获取SPU详情 -->
+                    <h4>3. 获取SPU详情</h4>
+                    <div class="form-group">
+                        <label>SPU ID:</label>
+                        <input type="number" id="getSpuId" placeholder="输入SPU ID">
+                    </div>
+                    <button onclick="getSpuById()">获取SPU详情</button>
+                    <div id="getSpuResponse" class="response"></div>
+
+                    <!-- 更新SPU -->
+                    <h4>4. 更新SPU</h4>
+                    <div class="form-group">
+                        <label>SPU ID:</label>
+                        <input type="number" id="updateSpuId" placeholder="输入SPU ID">
+                    </div>
+                    <div class="form-group">
+                        <label>更新数据 (JSON):</label>
+                        <textarea id="updateSpuData">{
+  "merchantId": 1,
+  "storeId": 1,
+  "categoryId": 1,
+  "spuName": "更新后的商品",
+  "spuDescription": "这是更新后的商品描述",
+  "productImage": "http://example.com/new-image.jpg",
+  "displayPrice": 199.99,
+  "basicAttributes": {
+    "颜色": ["红色", "蓝色", "绿色"],
+    "尺寸": ["S", "M", "L", "XL"]
+  },
+  "nonBasicAttributes": {
+    "材质": "高级棉质",
+    "产地": "中国"
+  },
+  "brandName": "测试品牌",
+  "sellingPoint": "高质量更新商品",
+  "unit": "件"
+}</textarea>
+                    </div>
+                    <button onclick="updateSpu()">更新SPU</button>
+                    <div id="updateSpuResponse" class="response"></div>
+
+                    <!-- SPU操作 -->
+                    <h4>5. SPU操作</h4>
+                    <div class="form-group">
+                        <label>SPU ID:</label>
+                        <input type="number" id="operateSpuId" placeholder="输入SPU ID">
+                    </div>
+                    <button class="btn-success" onclick="publishSpu()">上架SPU</button>
+                    <button class="btn-warning" onclick="unpublishSpu()">下架SPU</button>
+                    <button class="btn-danger" onclick="deleteSpu()">删除SPU</button>
+                    <div id="operateSpuResponse" class="response"></div>
+
+                    <!-- 获取SPU统计 -->
+                    <h4>6. 获取SPU统计</h4>
+                    <div class="form-group">
+                        <label>店铺ID:</label>
+                        <input type="number" id="statsStoreId" value="1">
+                    </div>
+                    <button onclick="getSpuStats()">获取统计</button>
+                    <div id="getSpuStatsResponse" class="response"></div>
+
+                    <!-- 生成SKU组合 -->
+                    <h4>7. 生成SKU组合</h4>
+                    <div class="form-group">
+                        <label>基础属性 (JSON):</label>
+                        <textarea id="generateSkuData">{
+  "颜色": ["红色", "蓝色", "绿色"],
+  "尺寸": ["S", "M", "L"]
+}</textarea>
+                    </div>
+                    <button onclick="generateSkuCombinations()">生成SKU组合</button>
+                    <div id="generateSkuResponse" class="response"></div>
+                </div>
+            </div>
+
+            <!-- SKU管理API -->
+            <div class="api-section">
+                <div class="api-header">SKU管理API</div>
+                <div class="api-body">
+                    <!-- 创建SKU -->
+                    <h4>1. 创建SKU</h4>
+                    <div class="form-group">
+                        <label>SPU ID:</label>
+                        <input type="number" id="createSkuSpuId" placeholder="输入SPU ID">
+                    </div>
+                    <div class="form-group">
+                        <label>SKU数据 (JSON):</label>
+                        <textarea id="createSkuData">{
+  "skuName": "测试SKU-红色-M",
+  "salePrice": 89.99,
+  "stockQuantity": 50,
+  "attributeCombination": {
+    "颜色": "红色",
+    "尺寸": "M"
+  },
+  "status": 1,
+  "warnStock": 10
+}</textarea>
+                    </div>
+                    <button onclick="createSku()">创建SKU</button>
+                    <div id="createSkuResponse" class="response"></div>
+
+                    <!-- 获取SKU列表 -->
+                    <h4>2. 根据SPU获取SKU列表</h4>
+                    <div class="form-group">
+                        <label>SPU ID:</label>
+                        <input type="number" id="getSkuListSpuId" placeholder="输入SPU ID">
+                    </div>
+                    <button onclick="getSkuListBySpuId()">获取SKU列表</button>
+                    <div id="getSkuListResponse" class="response"></div>
+
+                    <!-- 获取SKU详情 -->
+                    <h4>3. 获取SKU详情</h4>
+                    <div class="form-group">
+                        <label>SKU ID:</label>
+                        <input type="number" id="getSkuId" placeholder="输入SKU ID">
+                    </div>
+                    <button onclick="getSkuById()">获取SKU详情</button>
+                    <div id="getSkuResponse" class="response"></div>
+
+                    <!-- 更新SKU -->
+                    <h4>4. 更新SKU</h4>
+                    <div class="form-group">
+                        <label>SKU ID:</label>
+                        <input type="number" id="updateSkuId" placeholder="输入SKU ID">
+                    </div>
+                    <div class="form-group">
+                        <label>更新数据 (JSON):</label>
+                        <textarea id="updateSkuData">{
+  "skuName": "更新后的SKU",
+  "salePrice": 99.99,
+  "stockQuantity": 80,
+  "attributeCombination": {
+    "颜色": "蓝色",
+    "尺寸": "L"
+  },
+  "status": 1,
+  "warnStock": 15
+}</textarea>
+                    </div>
+                    <button onclick="updateSku()">更新SKU</button>
+                    <div id="updateSkuResponse" class="response"></div>
+
+                    <!-- SKU操作 -->
+                    <h4>5. SKU操作</h4>
+                    <div class="form-group">
+                        <label>SKU ID:</label>
+                        <input type="number" id="operateSkuId" placeholder="输入SKU ID">
+                    </div>
+                    <button class="btn-danger" onclick="deleteSku()">删除SKU</button>
+                    <div id="operateSkuResponse" class="response"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let baseUrl = 'http://localhost:8081';
+
+        function changeBaseUrl() {
+            const newUrl = prompt('请输入新的基础URL:', baseUrl);
+            if (newUrl) {
+                baseUrl = newUrl;
+                document.getElementById('baseUrl').textContent = baseUrl;
+            }
+        }
+
+        async function makeRequest(url, method = 'GET', data = null) {
+            try {
+                const options = {
+                    method: method,
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                };
+                
+                if (data) {
+                    options.body = JSON.stringify(data);
+                }
+
+                const response = await fetch(baseUrl + url, options);
+                const result = await response.json();
+                return { success: response.ok, data: result };
+            } catch (error) {
+                return { success: false, error: error.message };
+            }
+        }
+
+        function displayResponse(elementId, response) {
+            const element = document.getElementById(elementId);
+            element.className = 'response ' + (response.success ? 'success' : 'error');
+            element.textContent = JSON.stringify(response, null, 2);
+        }
+
+        // SPU API 函数
+        async function createSpu() {
+            try {
+                const data = JSON.parse(document.getElementById('createSpuData').value);
+                const response = await makeRequest('/api/merchant/spu', 'POST', data);
+                displayResponse('createSpuResponse', response);
+            } catch (error) {
+                displayResponse('createSpuResponse', { success: false, error: 'JSON格式错误: ' + error.message });
+            }
+        }
+
+        async function getSpuList() {
+            const storeId = document.getElementById('listStoreId').value;
+            const categoryId = document.getElementById('listCategoryId').value;
+            const keyword = document.getElementById('listKeyword').value;
+            const status = document.getElementById('listStatus').value;
+            const page = document.getElementById('listPage').value;
+            const pageSize = document.getElementById('listPageSize').value;
+
+            let url = `/api/merchant/spu/list?page=${page}&pageSize=${pageSize}`;
+            if (storeId) url += `&storeId=${storeId}`;
+            if (categoryId) url += `&categoryId=${categoryId}`;
+            if (keyword) url += `&keyword=${encodeURIComponent(keyword)}`;
+            if (status) url += `&status=${status}`;
+
+            const response = await makeRequest(url);
+            displayResponse('getSpuListResponse', response);
+        }
+
+        async function getSpuById() {
+            const spuId = document.getElementById('getSpuId').value;
+            if (!spuId) {
+                displayResponse('getSpuResponse', { success: false, error: '请输入SPU ID' });
+                return;
+            }
+            const response = await makeRequest(`/api/merchant/spu/${spuId}`);
+            displayResponse('getSpuResponse', response);
+        }
+
+        async function updateSpu() {
+            const spuId = document.getElementById('updateSpuId').value;
+            if (!spuId) {
+                displayResponse('updateSpuResponse', { success: false, error: '请输入SPU ID' });
+                return;
+            }
+            try {
+                const data = JSON.parse(document.getElementById('updateSpuData').value);
+                const response = await makeRequest(`/api/merchant/spu/${spuId}`, 'PUT', data);
+                displayResponse('updateSpuResponse', response);
+            } catch (error) {
+                displayResponse('updateSpuResponse', { success: false, error: 'JSON格式错误: ' + error.message });
+            }
+        }
+
+        async function publishSpu() {
+            const spuId = document.getElementById('operateSpuId').value;
+            if (!spuId) {
+                displayResponse('operateSpuResponse', { success: false, error: '请输入SPU ID' });
+                return;
+            }
+            const response = await makeRequest(`/api/merchant/spu/${spuId}/publish`, 'PUT');
+            displayResponse('operateSpuResponse', response);
+        }
+
+        async function unpublishSpu() {
+            const spuId = document.getElementById('operateSpuId').value;
+            if (!spuId) {
+                displayResponse('operateSpuResponse', { success: false, error: '请输入SPU ID' });
+                return;
+            }
+            const response = await makeRequest(`/api/merchant/spu/${spuId}/unpublish`, 'PUT');
+            displayResponse('operateSpuResponse', response);
+        }
+
+        async function deleteSpu() {
+            const spuId = document.getElementById('operateSpuId').value;
+            if (!spuId) {
+                displayResponse('operateSpuResponse', { success: false, error: '请输入SPU ID' });
+                return;
+            }
+            if (!confirm('确定要删除这个SPU吗？')) return;
+            const response = await makeRequest(`/api/merchant/spu/${spuId}`, 'DELETE');
+            displayResponse('operateSpuResponse', response);
+        }
+
+        async function getSpuStats() {
+            const storeId = document.getElementById('statsStoreId').value;
+            if (!storeId) {
+                displayResponse('getSpuStatsResponse', { success: false, error: '请输入店铺ID' });
+                return;
+            }
+            const response = await makeRequest(`/api/merchant/spu/stats/${storeId}`);
+            displayResponse('getSpuStatsResponse', response);
+        }
+
+        async function generateSkuCombinations() {
+            try {
+                const data = JSON.parse(document.getElementById('generateSkuData').value);
+                const response = await makeRequest('/api/merchant/spu/generate-sku-combinations', 'POST', data);
+                displayResponse('generateSkuResponse', response);
+            } catch (error) {
+                displayResponse('generateSkuResponse', { success: false, error: 'JSON格式错误: ' + error.message });
+            }
+        }
+
+        // SKU API 函数
+        async function createSku() {
+            const spuId = document.getElementById('createSkuSpuId').value;
+            if (!spuId) {
+                displayResponse('createSkuResponse', { success: false, error: '请输入SPU ID' });
+                return;
+            }
+            try {
+                const data = JSON.parse(document.getElementById('createSkuData').value);
+                const response = await makeRequest(`/api/merchant/sku/${spuId}`, 'POST', data);
+                displayResponse('createSkuResponse', response);
+            } catch (error) {
+                displayResponse('createSkuResponse', { success: false, error: 'JSON格式错误: ' + error.message });
+            }
+        }
+
+        async function getSkuListBySpuId() {
+            const spuId = document.getElementById('getSkuListSpuId').value;
+            if (!spuId) {
+                displayResponse('getSkuListResponse', { success: false, error: '请输入SPU ID' });
+                return;
+            }
+            const response = await makeRequest(`/api/merchant/sku/spu/${spuId}`);
+            displayResponse('getSkuListResponse', response);
+        }
+
+        async function getSkuById() {
+            const skuId = document.getElementById('getSkuId').value;
+            if (!skuId) {
+                displayResponse('getSkuResponse', { success: false, error: '请输入SKU ID' });
+                return;
+            }
+            const response = await makeRequest(`/api/merchant/sku/${skuId}`);
+            displayResponse('getSkuResponse', response);
+        }
+
+        async function updateSku() {
+            const skuId = document.getElementById('updateSkuId').value;
+            if (!skuId) {
+                displayResponse('updateSkuResponse', { success: false, error: '请输入SKU ID' });
+                return;
+            }
+            try {
+                const data = JSON.parse(document.getElementById('updateSkuData').value);
+                const response = await makeRequest(`/api/merchant/sku/${skuId}`, 'PUT', data);
+                displayResponse('updateSkuResponse', response);
+            } catch (error) {
+                displayResponse('updateSkuResponse', { success: false, error: 'JSON格式错误: ' + error.message });
+            }
+        }
+
+        async function deleteSku() {
+            const skuId = document.getElementById('operateSkuId').value;
+            if (!skuId) {
+                displayResponse('operateSkuResponse', { success: false, error: '请输入SKU ID' });
+                return;
+            }
+            if (!confirm('确定要删除这个SKU吗？')) return;
+            const response = await makeRequest(`/api/merchant/sku/${skuId}`, 'DELETE');
+            displayResponse('operateSkuResponse', response);
+        }
+    </script>
+</body>
+</html> 

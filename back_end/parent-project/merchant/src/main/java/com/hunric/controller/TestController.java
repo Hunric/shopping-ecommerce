@@ -5,6 +5,7 @@ import com.hunric.model.dto.StoreDTO;
 import com.hunric.service.DashboardService;
 import com.hunric.service.StoreService;
 import com.hunric.common.model.ApiResponse;
+import com.hunric.common.util.JwtUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -14,6 +15,8 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * 测试控制器 - 用于验证接口功能
@@ -21,7 +24,6 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/test")
 @Slf4j
-@CrossOrigin(origins = "*")
 public class TestController {
 
     @Autowired
@@ -29,6 +31,9 @@ public class TestController {
     
     @Autowired
     private StoreService storeService;
+    
+    @Autowired
+    private JwtUtil jwtUtil;
     
     /**
      * 测试Dashboard统计接口
@@ -139,5 +144,38 @@ public class TestController {
     @GetMapping("/health")
     public ResponseEntity<ApiResponse<String>> healthCheck() {
         return ResponseEntity.ok(ApiResponse.success("商家管理服务运行正常"));
+    }
+
+    /**
+     * 生成测试JWT Token
+     */
+    @GetMapping("/generate-token/{merchantId}")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> generateTestToken(@PathVariable Integer merchantId) {
+        log.info("生成测试Token: merchantId={}", merchantId);
+        
+        try {
+            // 使用真实的JWT工具类生成token
+            String email = "test@example.com";
+            String merchantName = "测试商家";
+            
+            String accessToken = jwtUtil.generateAccessToken(merchantId.longValue(), email, merchantName);
+            String refreshToken = jwtUtil.generateRefreshToken(merchantId.longValue(), email);
+            long expiresIn = jwtUtil.getTokenRemainingTime(accessToken);
+            
+            Map<String, Object> tokenInfo = new HashMap<>();
+            tokenInfo.put("accessToken", accessToken);
+            tokenInfo.put("refreshToken", refreshToken);
+            tokenInfo.put("tokenType", "Bearer");
+            tokenInfo.put("expiresIn", expiresIn);
+            tokenInfo.put("merchantId", merchantId);
+            tokenInfo.put("merchantName", merchantName);
+            tokenInfo.put("email", email);
+            tokenInfo.put("note", "这是一个有效的测试Token，可用于API测试");
+            
+            return ResponseEntity.ok(ApiResponse.success(tokenInfo));
+        } catch (Exception e) {
+            log.error("生成测试Token异常", e);
+            return ResponseEntity.ok(ApiResponse.error("生成测试Token失败: " + e.getMessage()));
+        }
     }
 } 

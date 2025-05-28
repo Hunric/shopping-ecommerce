@@ -1,5 +1,6 @@
 package com.hunric.config;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -8,11 +9,13 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.util.Arrays;
+import java.util.Collections;
 
 /**
  * 商家模块安全配置
@@ -20,6 +23,9 @@ import java.util.Arrays;
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
+
+    @Autowired
+    private JwtAuthenticationFilter jwtAuthenticationFilter;
 
     /**
      * 密码编码器
@@ -51,13 +57,17 @@ public class SecurityConfig {
                     "/api/merchant/register",           // 商家注册
                     "/api/merchant/send-login-code",    // 发送登录验证码
                     "/api/merchant/login",              // 验证码登录
+                    "/api/test/**",                     // 测试接口
                     "/actuator/**",                     // 健康检查等
                     "/error"                            // 错误页面
                 ).permitAll()
                 
                 // 其他所有请求都需要认证
                 .anyRequest().authenticated()
-            );
+            )
+            
+            // 添加JWT认证过滤器
+            .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
@@ -69,17 +79,32 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
         
-        // 允许的源
-        configuration.setAllowedOriginPatterns(Arrays.asList("*"));
+        // 允许的源 - 明确指定前端地址
+        configuration.setAllowedOrigins(Collections.singletonList("http://localhost:3000"));
         
         // 允许的HTTP方法
-        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD", "PATCH"));
         
         // 允许的请求头
-        configuration.setAllowedHeaders(Arrays.asList("*"));
+        configuration.setAllowedHeaders(Arrays.asList(
+            "Content-Type",
+            "X-Requested-With",
+            "accept",
+            "Origin",
+            "Access-Control-Request-Method",
+            "Access-Control-Request-Headers",
+            "Authorization"
+        ));
         
         // 允许发送凭证
         configuration.setAllowCredentials(true);
+        
+        // 暴露的响应头
+        configuration.setExposedHeaders(Arrays.asList(
+            "Access-Control-Allow-Origin",
+            "Access-Control-Allow-Credentials",
+            "Authorization"
+        ));
         
         // 预检请求的缓存时间
         configuration.setMaxAge(3600L);

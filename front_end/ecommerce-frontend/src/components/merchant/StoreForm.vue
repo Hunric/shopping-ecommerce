@@ -61,37 +61,15 @@
         </h3>
         
         <el-form-item label="店铺Logo" prop="storeLogo">
-          <div class="logo-upload">
-            <div class="logo-preview">
-              <img
-                v-if="formData.storeLogo"
-                :src="formData.storeLogo"
-                alt="店铺Logo"
-                class="logo-image"
-                @error="handleImageError"
-              />
-              <div v-else class="logo-placeholder">
-                <el-icon class="logo-icon"><Plus /></el-icon>
-                <span>上传Logo</span>
-              </div>
-            </div>
-            
-            <div class="logo-input">
-              <el-input
-                v-model="formData.storeLogo"
-                placeholder="请输入Logo图片URL"
-                clearable
-              >
-                <template #append>
-                  <el-button @click="previewLogo">预览</el-button>
-                </template>
-              </el-input>
-              <div class="logo-tips">
-                <p>建议尺寸：200x200像素，支持JPG、PNG格式</p>
-                <p>或者输入图片URL地址</p>
-              </div>
-            </div>
-          </div>
+          <ImageUpload
+            v-model="formData.storeLogo"
+            placeholder="点击或拖拽上传店铺Logo"
+            tips="建议尺寸：200x200像素，支持 JPG、PNG、GIF、WebP 格式，文件大小不超过 5MB"
+            upload-type="store-logo"
+            alt="店铺Logo"
+            @upload-success="handleLogoUploadSuccess"
+            @upload-error="handleLogoUploadError"
+          />
         </el-form-item>
       </div>
 
@@ -104,8 +82,8 @@
         
         <el-form-item label="营业状态" prop="status">
           <el-radio-group v-model="formData.status">
-            <el-radio label="open">立即开始营业</el-radio>
-            <el-radio label="closed">暂不营业</el-radio>
+            <el-radio value="open">立即开始营业</el-radio>
+            <el-radio value="closed">暂不营业</el-radio>
           </el-radio-group>
           <div class="form-tips">
             选择"立即开始营业"后，客户可以浏览和购买您的商品
@@ -114,10 +92,10 @@
         
         <el-form-item label="服务承诺" prop="servicePromise">
           <el-checkbox-group v-model="formData.servicePromise">
-            <el-checkbox label="7天无理由退货">7天无理由退货</el-checkbox>
-            <el-checkbox label="正品保证">正品保证</el-checkbox>
-            <el-checkbox label="快速发货">快速发货</el-checkbox>
-            <el-checkbox label="售后保障">售后保障</el-checkbox>
+            <el-checkbox value="7天无理由退货">7天无理由退货</el-checkbox>
+            <el-checkbox value="正品保证">正品保证</el-checkbox>
+            <el-checkbox value="快速发货">快速发货</el-checkbox>
+            <el-checkbox value="售后保障">售后保障</el-checkbox>
           </el-checkbox-group>
         </el-form-item>
       </div>
@@ -156,72 +134,92 @@
 
       <!-- 操作按钮 -->
       <div class="form-actions">
-        <el-button @click="handleCancel" size="large">
-          <el-icon><Close /></el-icon>
-          取消
-        </el-button>
-        <el-button @click="handleSaveDraft" size="large">
-          <el-icon><Document /></el-icon>
-          保存草稿
-        </el-button>
-        <el-button
-          type="primary"
-          @click="handleSubmit"
-          size="large"
-          :loading="submitting"
-        >
-          <el-icon><Check /></el-icon>
-          {{ formData.status === 'open' ? '创建并开始营业' : '创建店铺' }}
-        </el-button>
+        <div class="left-actions">
+          <el-button @click="handleCancel" size="large">
+            <el-icon><Close /></el-icon>
+            取消
+          </el-button>
+          <el-button 
+            v-if="props.mode === 'create'" 
+            @click="openDraftManager" 
+            size="large"
+          >
+            <el-icon><FolderOpened /></el-icon>
+            草稿管理
+          </el-button>
+        </div>
+        <div class="right-actions">
+          <el-button 
+            v-if="props.mode === 'create'" 
+            @click="handleSaveDraft" 
+            size="large" 
+            :loading="submitting"
+          >
+            <el-icon><Document /></el-icon>
+            <span>{{ currentDraftId ? '更新草稿' : '保存草稿' }}</span>
+          </el-button>
+          <el-button
+            type="primary"
+            @click="handleSubmit"
+            size="large"
+            :loading="submitting"
+          >
+            <el-icon><Check /></el-icon>
+            {{ getSubmitButtonText() }}
+          </el-button>
+        </div>
       </div>
     </el-form>
 
-    <!-- Logo预览对话框 -->
-    <el-dialog
-      v-model="logoPreviewVisible"
-      title="Logo预览"
-      width="400px"
-      @close="logoPreviewVisible = false"
-    >
-      <div class="logo-preview-dialog">
-        <img
-          v-if="formData.storeLogo"
-          :src="formData.storeLogo"
-          alt="Logo预览"
-          class="preview-image"
-          @error="handlePreviewError"
-        />
-        <div v-else class="preview-placeholder">
-          <el-icon><Picture /></el-icon>
-          <p>请先输入Logo URL</p>
-        </div>
-      </div>
-      
-      <template #footer>
-        <el-button @click="logoPreviewVisible = false">关闭</el-button>
-      </template>
-    </el-dialog>
+    <!-- 草稿管理对话框 -->
+    <DraftManager
+      v-model="draftManagerVisible"
+      @load-draft="handleLoadDraft"
+      @close="draftManagerVisible = false"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive } from 'vue'
+import { ref, reactive, onMounted, onUnmounted, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
 import {
-  Shop, Picture, Setting, Phone, Plus, Close, Document, Check
+  Shop, Picture, Setting, Phone, Plus, Close, Document, Check, FolderOpened
 } from '@element-plus/icons-vue'
+import ImageUpload from '@/components/common/ImageUpload.vue'
+import DraftManager from './DraftManager.vue'
+import { useAuthStore } from '@/store/modules/auth'
+import type { StoreCreateData, StoreUpdateData, Store } from '@/api/merchant/store'
+import type { StoreExtended, StoreExtendedCreateData, StoreExtendedUpdateData } from '@/api/merchant/storeExtended'
+import { draftService, type StoreDraft } from '@/services/draftService'
+
+// 定义Props
+interface Props {
+  editStore?: Store | StoreExtended // 编辑模式时传入的店铺数据
+  mode?: 'create' | 'edit' // 模式：创建或编辑
+  useExtendedApi?: boolean // 是否使用扩展API
+}
+
+const props = withDefaults(defineProps<Props>(), {
+  mode: 'create',
+  useExtendedApi: false
+})
 
 // 定义事件
 const emit = defineEmits<{
   cancel: []
-  success: [storeData: any]
+  success: [storeData: StoreCreateData | StoreUpdateData | StoreExtendedCreateData | StoreExtendedUpdateData, storeId?: number]
 }>()
 
 // 响应式数据
 const formRef = ref<FormInstance>()
 const submitting = ref(false)
-const logoPreviewVisible = ref(false)
+const authStore = useAuthStore()
+const draftManagerVisible = ref(false)
+const currentDraftId = ref<string | null>(null)
+const lastSavedData = ref<any>(null)
+const autoSaveTimer = ref<number | null>(null)
 
 // 表单数据
 const formData = reactive({
@@ -290,6 +288,12 @@ const handleCancel = async () => {
 }
 
 const handleSaveDraft = async () => {
+  // 编辑模式下不支持草稿功能
+  if (props.mode === 'edit') {
+    ElMessage.warning('编辑模式下不支持草稿功能')
+    return
+  }
+
   try {
     // 基本验证
     if (!formData.storeName.trim()) {
@@ -297,10 +301,28 @@ const handleSaveDraft = async () => {
       return
     }
 
-    // 模拟保存草稿
-    ElMessage.success('草稿已保存')
+    if (!authStore.merchantInfo?.merchantId) {
+      ElMessage.warning('商家信息不完整，请重新登录')
+      return
+    }
+
+    submitting.value = true
+
+    if (currentDraftId.value) {
+      // 更新现有草稿
+      draftService.updateDraft(currentDraftId.value, formData)
+    } else {
+      // 创建新草稿
+      const draftId = draftService.saveDraft(formData, authStore.merchantInfo.merchantId)
+      currentDraftId.value = draftId
+    }
+
+    // 更新最后保存的数据
+    lastSavedData.value = { ...formData }
   } catch (error) {
-    ElMessage.error('保存草稿失败')
+    console.error('保存草稿失败:', error)
+  } finally {
+    submitting.value = false
   }
 }
 
@@ -313,53 +335,178 @@ const handleSubmit = async () => {
     
     submitting.value = true
 
-    // 模拟API调用
-    await new Promise(resolve => setTimeout(resolve, 1500))
-
-    // 构造店铺数据
-    const storeData = {
-      storeId: Date.now(), // 模拟生成ID
-      storeName: formData.storeName,
-      storeDescription: formData.storeDescription,
-      category: formData.category,
-      storeLogo: formData.storeLogo || undefined,
-      status: formData.status,
-      servicePromise: formData.servicePromise,
-      servicePhone: formData.servicePhone,
-      serviceEmail: formData.serviceEmail,
-      businessHours: formData.businessHours,
-      openTime: new Date().toISOString(),
-      creditScore: 100
+    if (props.mode === 'edit' && props.editStore) {
+      // 编辑模式：构造更新数据
+      if (props.useExtendedApi) {
+        const updateData: StoreExtendedUpdateData = {
+          storeName: formData.storeName,
+          storeDescription: formData.storeDescription,
+          storeLogo: formData.storeLogo || undefined,
+          category: formData.category,
+          status: formData.status as 'open' | 'closed' | 'suspended',
+          servicePromise: formData.servicePromise,
+          servicePhone: formData.servicePhone,
+          serviceEmail: formData.serviceEmail,
+          businessHours: formData.businessHours
+        }
+        emit('success', updateData, props.editStore.storeId)
+      } else {
+        const updateData: StoreUpdateData = {
+          storeName: formData.storeName,
+          storeDescription: formData.storeDescription,
+          storeLogo: formData.storeLogo || undefined,
+          status: formData.status
+        }
+        emit('success', updateData, props.editStore.storeId)
+      }
+    } else {
+      // 创建模式：构造创建数据
+      if (!authStore.merchantInfo?.merchantId) {
+        ElMessage.warning('商家信息不完整，请重新登录')
+        return
+      }
+      
+      if (props.useExtendedApi) {
+        const storeData: StoreExtendedCreateData = {
+          merchantId: authStore.merchantInfo.merchantId,
+          storeName: formData.storeName,
+          storeDescription: formData.storeDescription,
+          storeLogo: formData.storeLogo || undefined,
+          category: formData.category,
+          status: formData.status as 'open' | 'closed',
+          servicePromise: formData.servicePromise,
+          servicePhone: formData.servicePhone,
+          serviceEmail: formData.serviceEmail,
+          businessHours: formData.businessHours
+        }
+        emit('success', storeData)
+      } else {
+        const storeData: StoreCreateData = {
+          merchantId: authStore.merchantInfo.merchantId,
+          storeName: formData.storeName,
+          storeDescription: formData.storeDescription,
+          storeLogo: formData.storeLogo || undefined
+        }
+        emit('success', storeData)
+      }
     }
-
-    ElMessage.success('店铺创建成功！')
-    emit('success', storeData)
 
   } catch (error) {
     if (error !== false) { // 不是验证失败
-      ElMessage.error('创建店铺失败，请稍后重试')
+      const action = props.mode === 'edit' ? '更新店铺' : '创建店铺'
+      ElMessage.error(`${action}失败，请稍后重试`)
     }
   } finally {
     submitting.value = false
   }
 }
 
-const previewLogo = () => {
-  if (!formData.storeLogo.trim()) {
-    ElMessage.warning('请先输入Logo URL')
+const handleLogoUploadSuccess = (url: string) => {
+  console.log('Logo上传成功:', url)
+  // formData.storeLogo 已经通过 v-model 自动更新
+}
+
+const handleLogoUploadError = (error: string) => {
+  console.error('Logo上传失败:', error)
+}
+
+// 打开草稿管理器
+const openDraftManager = () => {
+  draftManagerVisible.value = true
+}
+
+// 加载草稿
+const handleLoadDraft = async (draft: StoreDraft) => {
+  try {
+    // 检查是否有未保存的更改
+    if (hasUnsavedChanges() && !currentDraftId.value) {
+      await ElMessageBox.confirm(
+        '当前有未保存的内容，加载草稿将覆盖当前内容，是否继续？',
+        '确认加载草稿',
+        {
+          confirmButtonText: '确定加载',
+          cancelButtonText: '取消',
+          type: 'warning'
+        }
+      )
+    }
+
+    // 加载草稿数据到表单
+    Object.assign(formData, {
+      storeName: draft.storeName,
+      storeDescription: draft.storeDescription,
+      category: draft.category,
+      storeLogo: draft.storeLogo,
+      status: draft.status,
+      servicePromise: draft.servicePromise,
+      servicePhone: draft.servicePhone,
+      serviceEmail: draft.serviceEmail,
+      businessHours: draft.businessHours
+    })
+
+    // 设置当前草稿ID
+    currentDraftId.value = draft.id
+    lastSavedData.value = { ...formData }
+
+    ElMessage.success(`草稿"${draft.title}"已加载`)
+  } catch (error) {
+    if (error !== 'cancel') {
+      console.error('加载草稿失败:', error)
+      ElMessage.error('加载草稿失败')
+    }
+  }
+}
+
+// 检查是否有未保存的更改
+const hasUnsavedChanges = () => {
+  if (!lastSavedData.value) {
+    // 检查是否有任何内容
+    return Object.values(formData).some(value => {
+      if (Array.isArray(value)) {
+        return value.length > 0
+      }
+      return value !== '' && value !== 'open' && value !== '周一至周日 9:00-22:00'
+    })
+  }
+  
+  return draftService.hasUnsavedChanges(formData, lastSavedData.value)
+}
+
+// 自动保存
+const autoSave = () => {
+  // 编辑模式下不启用自动保存
+  if (props.mode === 'edit') {
     return
   }
-  logoPreviewVisible.value = true
+
+  if (hasUnsavedChanges() && formData.storeName.trim() && authStore.merchantInfo?.merchantId) {
+    try {
+      if (currentDraftId.value) {
+        draftService.updateDraft(currentDraftId.value, formData)
+        lastSavedData.value = { ...formData }
+      }
+    } catch (error) {
+      console.error('自动保存失败:', error)
+    }
+  }
 }
 
-const handleImageError = (event: Event) => {
-  const img = event.target as HTMLImageElement
-  img.style.display = 'none'
-  ElMessage.warning('Logo图片加载失败，请检查URL是否正确')
+// 启动自动保存
+const startAutoSave = () => {
+  if (autoSaveTimer.value) {
+    clearInterval(autoSaveTimer.value)
+  }
+  
+  // 每30秒自动保存一次
+  autoSaveTimer.value = setInterval(autoSave, 30000)
 }
 
-const handlePreviewError = () => {
-  ElMessage.warning('图片预览失败，请检查URL是否正确')
+// 停止自动保存
+const stopAutoSave = () => {
+  if (autoSaveTimer.value) {
+    clearInterval(autoSaveTimer.value)
+    autoSaveTimer.value = null
+  }
 }
 
 // 获取类目显示名称
@@ -377,6 +524,53 @@ const getCategoryName = (value: string) => {
   }
   return categoryMap[value] || value
 }
+
+// 获取提交按钮文本
+const getSubmitButtonText = () => {
+  if (props.mode === 'edit') {
+    return '保存修改'
+  }
+  return formData.status === 'open' ? '创建并开始营业' : '创建店铺'
+}
+
+// 初始化表单数据
+const initializeForm = () => {
+  if (props.mode === 'edit' && props.editStore) {
+    // 编辑模式：加载现有店铺数据
+    const store = props.editStore as StoreExtended
+    Object.assign(formData, {
+      storeName: store.storeName || '',
+      storeDescription: store.storeDescription || '',
+      category: store.category || '',
+      storeLogo: store.storeLogo || '',
+      status: store.status || 'open',
+      servicePromise: store.servicePromise || [],
+      servicePhone: store.servicePhone || '',
+      serviceEmail: store.serviceEmail || '',
+      businessHours: store.businessHours || '周一至周日 9:00-22:00'
+    })
+    lastSavedData.value = { ...formData }
+  }
+}
+
+// 生命周期钩子
+onMounted(() => {
+  initializeForm()
+  startAutoSave()
+})
+
+onUnmounted(() => {
+  stopAutoSave()
+})
+
+// 监听表单变化
+watch(formData, () => {
+  // 表单有变化时，重置自动保存计时器
+  if (autoSaveTimer.value) {
+    clearInterval(autoSaveTimer.value)
+    startAutoSave()
+  }
+}, { deep: true })
 </script>
 
 <style scoped>
@@ -425,97 +619,25 @@ const getCategoryName = (value: string) => {
   line-height: 1.4;
 }
 
-/* Logo上传样式 */
-.logo-upload {
-  display: flex;
-  gap: 24px;
-  align-items: flex-start;
-}
 
-.logo-preview {
-  width: 120px;
-  height: 120px;
-  border: 2px dashed #dcdfe6;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: #fafafa;
-  transition: border-color 0.3s ease;
-  flex-shrink: 0;
-}
-
-.logo-preview:hover {
-  border-color: #409eff;
-}
-
-.logo-image {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  border-radius: 6px;
-}
-
-.logo-placeholder {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  color: #909399;
-}
-
-.logo-icon {
-  font-size: 24px;
-}
-
-.logo-input {
-  flex: 1;
-}
-
-.logo-tips {
-  margin-top: 8px;
-}
-
-.logo-tips p {
-  margin: 4px 0;
-  color: #909399;
-  font-size: 12px;
-}
-
-/* Logo预览对话框 */
-.logo-preview-dialog {
-  text-align: center;
-  padding: 20px;
-}
-
-.preview-image {
-  max-width: 100%;
-  max-height: 300px;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-
-.preview-placeholder {
-  padding: 60px 20px;
-  color: #909399;
-}
-
-.preview-placeholder .el-icon {
-  font-size: 48px;
-  margin-bottom: 16px;
-}
 
 /* 操作按钮 */
 .form-actions {
   display: flex;
-  justify-content: center;
-  gap: 16px;
+  justify-content: space-between;
+  align-items: center;
   padding-top: 32px;
   border-top: 1px solid #f0f0f0;
 }
 
+.left-actions,
+.right-actions {
+  display: flex;
+  gap: 16px;
+}
+
 .form-actions .el-button {
-  min-width: 140px;
+  min-width: 120px;
 }
 
 /* 响应式设计 */
@@ -525,19 +647,17 @@ const getCategoryName = (value: string) => {
     margin: 16px;
   }
 
-  .logo-upload {
-    flex-direction: column;
-    align-items: center;
-  }
 
-  .logo-preview {
-    width: 100px;
-    height: 100px;
-  }
 
   .form-actions {
     flex-direction: column;
     align-items: stretch;
+    gap: 16px;
+  }
+
+  .left-actions,
+  .right-actions {
+    justify-content: center;
   }
 
   .form-actions .el-button {
