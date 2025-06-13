@@ -1,22 +1,39 @@
 /**
- * API配置文件
- * 统一管理各个服务的基础URL
+ * 电商平台前端API配置文件
+ * 
+ * @description 统一管理所有API相关的配置信息，包括服务地址、路径前缀、
+ *              超时时间等。支持开发环境和生产环境的不同配置。
+ * 
+ * @features
+ * - 多服务API地址配置
+ * - 环境变量支持
+ * - 统一的API路径管理
+ * - 超时时间配置
+ * - 开发/生产环境自动适配
+ * 
+ * @services
+ * - 商家服务 (Merchant Service)
+ * - 文件服务 (File Service)  
+ * - 用户服务 (User Service)
+ * 
+ * @environment_handling
+ * - 开发环境: 通过Vite代理转发，使用相对路径
+ * - Docker生产环境: 通过Nginx代理，使用相对路径
+ * 
+ * @author 开发团队
+ * @version 2.0.0
+ * @since 2024
  */
-
-// 获取环境变量
-const getEnvVar = (key: string, defaultValue: string = '') => {
-  return import.meta.env[key] || defaultValue
-}
 
 // API基础配置
 export const API_CONFIG = {
-  // 基础API地址
-  BASE_URL: getEnvVar('VITE_API_BASE_URL', 'http://localhost:8081'),
+  // 基础API地址 - 统一使用相对路径，通过代理转发
+  BASE_URL: '',
   
-  // 各个服务的基础URL
-  MERCHANT: getEnvVar('VITE_MERCHANT_API_BASE_URL', 'http://localhost:8081'),
-  FILE: getEnvVar('VITE_FILE_API_BASE_URL', 'http://localhost:8082'),
-  USER: getEnvVar('VITE_USER_API_BASE_URL', 'http://localhost:8083'),
+  // 各个服务的基础URL - 统一使用相对路径，通过代理转发
+  MERCHANT: '',
+  FILE: '',
+  USER: '',
   
   // API路径前缀
   API_PREFIX: '/api',
@@ -28,17 +45,47 @@ export const API_CONFIG = {
   IS_DEV: import.meta.env.DEV
 }
 
-// 构建完整的API URL
-export const buildApiUrl = (service: keyof typeof API_CONFIG, path: string) => {
-  const baseUrl = API_CONFIG[service]
-  if (typeof baseUrl !== 'string') {
-    throw new Error(`Invalid service: ${service}`)
+// API路径常量
+export const API_PATHS = {
+  // 商家服务相关路径
+  MERCHANT: {
+    REGISTER: '/api/merchant/register',
+    LOGIN: '/api/merchant/login',
+    SEND_LOGIN_CODE: '/api/merchant/send-login-code',
+    DASHBOARD_STATS: '/api/merchant/dashboard/stats',
+    STORE_LIST: '/api/merchant/store-extended/merchant',
+    STORE_CREATE: '/api/merchant/store-extended',
+    STORE_UPDATE: '/api/merchant/store-extended',
+    INFO: '/api/merchant/info'
+  },
+  
+  // 验证码服务路径
+  VERIFICATION: {
+    SEND: '/api/verification/send',
+    VERIFY: '/api/verification/verify'
+  },
+  
+  // 文件服务路径
+  FILE: {
+    UPLOAD_IMAGE: '/api/upload/image',
+    UPLOAD_FILE: '/api/upload/file'
   }
-  
-  // 确保路径以 / 开头
-  const normalizedPath = path.startsWith('/') ? path : `/${path}`
-  
-  return `${baseUrl}${normalizedPath}`
+}
+
+// 构建完整的API URL
+export const buildApiUrl = (path: string): string => {
+  // 在开发环境和Docker环境中都使用相对路径
+  // 代理会自动处理路由到正确的后端服务
+  return path
+}
+
+// 获取服务类型（用于日志记录）
+export const getServiceType = (url: string): string => {
+  if (url.startsWith('/api/merchant')) return 'merchant'
+  if (url.startsWith('/api/upload')) return 'file'
+  if (url.startsWith('/api/verification')) return 'verification'
+  if (url.startsWith('/api/user')) return 'user'
+  return 'unknown'
 }
 
 // 商家服务API路径

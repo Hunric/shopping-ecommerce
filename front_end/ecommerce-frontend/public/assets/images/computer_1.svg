@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300">
+  <!-- 笔记本底座 -->
+  <rect x="100" y="200" width="200" height="20" rx="5" fill="#7f8c8d" />
+  <!-- 笔记本屏幕 -->
+  <rect x="110" y="80" width="180" height="120" rx="5" fill="#2c3e50" />
+  <!-- 笔记本键盘区 -->
+  <rect x="110" y="200" width="180" height="10" rx="2" fill="#95a5a6" />
+  <!-- 屏幕内容 -->
+  <rect x="120" y="90" width="160" height="100" rx="2" fill="#3498db" />
+  
+  <!-- 装饰图标 -->
+  <circle cx="200" cy="140" r="30" fill="#ecf0f1" />
+  <path d="M185,135 L215,135 L215,145 L185,145 Z" fill="#2c3e50" />
+  <path d="M195,125 L205,125 L205,155 L195,155 Z" fill="#2c3e50" />
+  
+  <!-- 产品信息 -->
+  <text x="200" y="240" font-family="Arial" font-size="14" fill="black" text-anchor="middle">超薄笔记本电脑 1</text>
+  <text x="200" y="260" font-family="Arial" font-size="10" fill="#7f8c8d" text-anchor="middle">高性能 | 轻薄便携</text>
+</svg> 

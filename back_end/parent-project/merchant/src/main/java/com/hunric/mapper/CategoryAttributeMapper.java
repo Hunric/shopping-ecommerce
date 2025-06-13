@@ -76,4 +76,16 @@ public interface CategoryAttributeMapper {
     @Select("SELECT * FROM category_attribute WHERE store_id = #{storeId} AND category_id = #{categoryId}")
     List<CategoryAttribute> selectByStoreIdAndCategoryId(@Param("storeId") Integer storeId, 
                                                         @Param("categoryId") Integer categoryId);
+    
+    /**
+     * 根据店铺ID查询属性列表
+     */
+    @Select("SELECT * FROM category_attribute WHERE store_id = #{storeId}")
+    List<CategoryAttribute> selectByStoreId(@Param("storeId") Integer storeId);
+    
+    /**
+     * 根据店铺ID统计属性数量
+     */
+    @Select("SELECT COUNT(*) FROM category_attribute WHERE store_id = #{storeId}")
+    int countByStoreId(@Param("storeId") Integer storeId);
 } 

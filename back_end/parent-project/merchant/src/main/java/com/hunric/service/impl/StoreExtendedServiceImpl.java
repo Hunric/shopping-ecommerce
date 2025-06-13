@@ -2,6 +2,8 @@ package com.hunric.service.impl;
 
 import com.hunric.common.model.ApiResponse;
 import com.hunric.mapper.StoreExtendedMapper;
+import com.hunric.mapper.SpuInfoMapper;
+import com.hunric.mapper.CategoryAttributeMapper;
 import com.hunric.model.StoreExtended;
 import com.hunric.model.dto.StoreExtendedDTO;
 import com.hunric.service.StoreExtendedService;
@@ -24,6 +26,12 @@ public class StoreExtendedServiceImpl implements StoreExtendedService {
 
     @Autowired
     private StoreExtendedMapper storeExtendedMapper;
+    
+    @Autowired
+    private SpuInfoMapper spuInfoMapper;
+    
+    @Autowired
+    private CategoryAttributeMapper categoryAttributeMapper;
 
     @Override
     public ApiResponse<List<StoreExtendedDTO>> getStoresByMerchantId(Integer merchantId) {
@@ -176,6 +184,20 @@ public class StoreExtendedServiceImpl implements StoreExtendedService {
                 return ApiResponse.error("店铺不存在");
             }
             
+            // 检查店铺是否有商品
+            int productCount = spuInfoMapper.countSpuByStoreId(storeId);
+            if (productCount > 0) {
+                log.warn("尝试删除存在商品的店铺: storeId={}, productCount={}", storeId, productCount);
+                return ApiResponse.error("无法删除店铺，该店铺中还有" + productCount + "个商品，请先删除所有商品");
+            }
+            
+            // 检查是否有关联的分类属性
+            int attributeCount = categoryAttributeMapper.countByStoreId(storeId);
+            if (attributeCount > 0) {
+                log.warn("尝试删除存在分类属性的店铺: storeId={}, attributeCount={}", storeId, attributeCount);
+                return ApiResponse.error("无法删除店铺，该店铺关联了" + attributeCount + "个分类属性，请先删除所有分类属性");
+            }
+            
             // 删除店铺
             int result = storeExtendedMapper.deleteById(storeId);
             if (result > 0) {
@@ -187,7 +209,7 @@ public class StoreExtendedServiceImpl implements StoreExtendedService {
             
         } catch (Exception e) {
             log.error("删除店铺失败，storeId: {}", storeId, e);
-            return ApiResponse.error("删除店铺失败");
+            return ApiResponse.error("删除店铺失败: " + e.getMessage());
         }
     }
 

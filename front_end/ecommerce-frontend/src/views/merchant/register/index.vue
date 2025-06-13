@@ -114,11 +114,14 @@
                     <input 
                       type="password" 
                       class="form-control" 
-                      placeholder="请输入密码" 
+                      placeholder="请输入密码（至少6位）" 
                       v-model="formData.password"
                       :class="{'has-error': errors.password}"
                     />
                     <div class="error-message" v-if="errors.password">{{ errors.password }}</div>
+                    <div class="password-requirements">
+                      密码要求：至少6位字符
+                    </div>
                   </div>
                   <div class="form-group">
                     <label>确认密码 <span class="required-mark">*</span></label>
@@ -607,108 +610,86 @@ const clearAllErrors = () => {
   });
 };
 
-// 验证表单
-const validateForm = (): boolean => {
-  let isValid = true;
-  
-  // 验证邮箱是否已验证 (这个检查作为第一优先级，已在submitForm中提前检查)
-  if (!isEmailVerified.value) {
-    errors.email = '请验证邮箱';
-    isValid = false;
-  }
+// 验证密码
+const validatePassword = (password: string): boolean => {
+  return password.length >= 6;
+}
+
+// 表单验证
+const validateForm = () => {
+  const errors: Record<string, string> = {};
   
   // 验证商家名称
-  if (!formData.merchantName.trim()) {
+  if (!formData.merchantName?.trim()) {
     errors.merchantName = '请输入商家名称';
-    isValid = false;
   }
   
   // 验证商家类型
   if (!formData.merchantType) {
     errors.merchantType = '请选择商家类型';
-    isValid = false;
   }
   
   // 验证密码
   if (!formData.password) {
     errors.password = '请输入密码';
-    isValid = false;
+  } else if (!validatePassword(formData.password)) {
+    errors.password = '密码长度至少为6位';
   }
   
   // 验证确认密码
   if (!formData.confirmPassword) {
-    errors.confirmPassword = '请确认密码';
-    isValid = false;
-  } else if (formData.password && formData.confirmPassword && formData.password !== formData.confirmPassword) {
+    errors.confirmPassword = '请再次输入密码';
+  } else if (formData.password !== formData.confirmPassword) {
     errors.confirmPassword = '两次输入的密码不一致';
-    isValid = false;
   }
   
   // 验证营业执照编号
-  if (!formData.licenseNumber) {
+  if (!formData.licenseNumber?.trim()) {
     errors.licenseNumber = '请输入营业执照编号';
-    isValid = false;
   } else if (formData.licenseNumber.length !== 18) {
-    errors.licenseNumber = '营业执照编号必须为18位';
-    isValid = false;
+    errors.licenseNumber = '请输入18位统一社会信用代码';
   }
   
-  // 验证法人姓名
-  if (!formData.legalPersonName.trim()) {
+  // 验证法人信息
+  if (!formData.legalPersonName?.trim()) {
     errors.legalPersonName = '请输入法人姓名';
-    isValid = false;
   }
-  
-  // 验证法人身份证号
-  if (!formData.legalPersonId) {
+  if (!formData.legalPersonId?.trim()) {
     errors.legalPersonId = '请输入法人身份证号';
-    isValid = false;
   } else if (formData.legalPersonId.length !== 18) {
-    errors.legalPersonId = '法人身份证号必须为18位';
-    isValid = false;
+    errors.legalPersonId = '请输入18位法人身份证号';
   }
   
-  // 验证联系人姓名
-  if (!formData.contactName.trim()) {
+  // 验证联系人信息
+  if (!formData.contactName?.trim()) {
     errors.contactName = '请输入联系人姓名';
-    isValid = false;
   }
-  
-  // 验证联系电话
-  if (!formData.contactPhone) {
+  if (!formData.contactPhone?.trim()) {
     errors.contactPhone = '请输入联系电话';
-    isValid = false;
-  } else if (formData.contactPhone.length !== 11) {
-    errors.contactPhone = '联系电话必须为11位';
-    isValid = false;
+  } else if (!/^1[3-9]\d{9}$/.test(formData.contactPhone)) {
+    errors.contactPhone = '请输入正确的手机号码';
   }
-  
-  // 验证联系邮箱
-  if (!formData.contactEmail.trim()) {
+  if (!formData.contactEmail?.trim()) {
     errors.contactEmail = '请输入联系邮箱';
-    isValid = false;
-  } else {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(formData.contactEmail)) {
-      errors.contactEmail = '请输入有效的邮箱地址';
-      isValid = false;
-    }
+  } else if (!validateEmail(formData.contactEmail)) {
+    errors.contactEmail = '请输入正确的邮箱格式';
   }
   
   // 验证地址
-  if (!addressCodes.value || addressCodes.value.length === 0) {
-    errors.address = '请选择省市区';
-    isValid = false;
+  if (!addressCodes || addressCodes.length < 3) {
+    errors.address = '请选择完整的省市区';
   }
-  
-  // 验证详细地址
-  if (!formData.detailAddress.trim()) {
+  if (!formData.detailAddress?.trim()) {
     errors.detailAddress = '请输入详细地址';
-    isValid = false;
   }
   
-  return isValid;
-};
+  // 验证协议
+  if (!formData.agreement) {
+    errors.agreement = '请阅读并同意商家入驻协议';
+  }
+  
+  return errors;
+}
 
 // 解决级联选择器滚动到边界不触发页面滚动问题
 const enableScrollPropagation = () => {
@@ -1295,5 +1276,11 @@ select.form-control {
 
 .agreement.has-error label {
   color: #f56c6c;
+}
+
+.password-requirements {
+  font-size: 12px;
+  color: #666;
+  margin-top: 4px;
 }
 </style> 

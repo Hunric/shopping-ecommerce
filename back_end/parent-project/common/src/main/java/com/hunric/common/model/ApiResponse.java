@@ -3,8 +3,60 @@ package com.hunric.common.model;
 import java.io.Serializable;
 
 /**
- * 通用API响应对象
- * @param <T> 响应数据类型
+ * 电商平台通用API响应封装类
+ * 
+ * @description 统一的API响应数据结构，用于封装所有API接口的返回结果。
+ *              提供标准化的响应格式，包括状态码、消息、数据和成功标识。
+ *              支持泛型，可以封装任意类型的响应数据。
+ * 
+ * @features
+ * - 泛型支持，可封装任意类型数据
+ * - 标准化的响应结构
+ * - 静态工厂方法，便于创建响应对象
+ * - 序列化支持，便于网络传输
+ * - 成功/失败状态明确标识
+ * - 灵活的错误码和消息定制
+ * 
+ * @response_structure
+ * - code: HTTP状态码或业务状态码
+ * - message: 响应消息或错误描述
+ * - data: 实际响应数据（泛型）
+ * - success: 操作是否成功的布尔标识
+ * 
+ * @usage_examples
+ * <pre>
+ * // 成功响应
+ * ApiResponse<User> response = ApiResponse.success(user);
+ * ApiResponse<List<Product>> response = ApiResponse.success(products, "查询成功");
+ * 
+ * // 错误响应
+ * ApiResponse<Void> response = ApiResponse.error("参数错误");
+ * ApiResponse<Void> response = ApiResponse.error("权限不足", 403);
+ * </pre>
+ * 
+ * @status_codes
+ * - 200: 操作成功
+ * - 400: 请求参数错误
+ * - 401: 未授权访问
+ * - 403: 权限不足
+ * - 404: 资源不存在
+ * - 500: 服务器内部错误
+ * 
+ * @serialization
+ * 实现Serializable接口，支持序列化和反序列化，
+ * 便于在分布式系统中进行数据传输和缓存存储。
+ * 
+ * @thread_safety
+ * 该类是不可变的（通过私有构造函数和静态工厂方法），
+ * 因此是线程安全的。
+ * 
+ * @param <T> 响应数据的类型
+ * 
+ * @author 开发团队
+ * @version 1.0.0
+ * @since 2024
+ * 
+ * @see {@link java.io.Serializable} 序列化接口
  */
 public class ApiResponse<T> implements Serializable {
     private static final long serialVersionUID = 1L;

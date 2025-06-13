@@ -123,6 +123,15 @@ export const createSPU = (data: SPUCreateData): Promise<ApiResponse<SPU>> => {
   }).then(response => response.data)
 }
 
+// 批量创建商品
+export const batchCreateSPU = (dataList: SPUCreateData[]): Promise<ApiResponse<SPU[]>> => {
+  return request({
+    url: '/api/merchant/spu/batch',
+    method: 'post',
+    data: dataList
+  }).then(response => response.data)
+}
+
 // 更新商品
 export const updateSPU = (spuId: number, data: SPUUpdateData): Promise<ApiResponse<SPU>> => {
   return request({
@@ -144,7 +153,7 @@ export const deleteSPU = (spuId: number): Promise<ApiResponse<void>> => {
 export const batchDeleteSPU = (spuIds: number[]): Promise<ApiResponse<void>> => {
   return request({
     url: '/api/merchant/spu/batch-delete',
-    method: 'post',
+    method: 'delete',
     data: { spuIds }
   }).then(response => response.data)
 }

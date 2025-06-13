@@ -181,7 +181,7 @@ const clearAuth = () => {
 // 获取测试Token
 const getTestToken = async () => {
   try {
-    const response = await fetch(`http://localhost:8081/merchant/api/test/generate-token/${merchantId.value}`)
+    const response = await fetch(`/api/merchant/test/generate-token/${merchantId.value}`)
     const result = await response.json()
     
     if (result.success && result.data) {
@@ -194,7 +194,7 @@ const getTestToken = async () => {
         tokenType: tokenData.tokenType,
         expiresIn: tokenData.expiresIn,
         merchantId: tokenData.merchantId,
-        merchantName: tokenData.merchantName,
+        merchantName: '测试商家',
         email: tokenData.email
       }
       
@@ -238,7 +238,7 @@ onMounted(() => {
   setInterval(updateTime, 1000)
   
   // 获取API配置
-  apiBaseUrl.value = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8081/merchant'
+  apiBaseUrl.value = '通过代理访问 (开发环境: Vite代理, Docker环境: Nginx代理)'
   
   // 初始化认证状态
   authStore.initializeAuth()

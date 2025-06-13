@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300">
+  <!-- 台式机主机 -->
+  <rect x="100" y="120" width="80" height="150" rx="5" fill="#34495e" />
+  <!-- 电源指示灯 -->
+  <circle cx="140" cy="135" r="5" fill="#e74c3c" />
+  <!-- 光驱 -->
+  <rect x="110" y="150" width="60" height="10" rx="2" fill="#95a5a6" />
+  <!-- USB接口 -->
+  <rect x="110" y="170" width="10" height="5" rx="1" fill="#7f8c8d" />
+  <rect x="125" y="170" width="10" height="5" rx="1" fill="#7f8c8d" />
+  <rect x="140" y="170" width="10" height="5" rx="1" fill="#7f8c8d" />
+  
+  <!-- 显示器 -->
+  <rect x="200" y="100" width="120" height="80" rx="5" fill="#2c3e50" />
+  <rect x="205" y="105" width="110" height="70" rx="2" fill="#3498db" />
+  <!-- 显示器底座 -->
+  <rect x="245" y="180" width="30" height="10" rx="2" fill="#7f8c8d" />
+  <rect x="255" y="190" width="10" height="20" rx="2" fill="#7f8c8d" />
+  <rect x="240" y="210" width="40" height="5" rx="2" fill="#7f8c8d" />
+  
+  <!-- 键盘 -->
+  <rect x="200" y="230" width="100" height="25" rx="5" fill="#95a5a6" />
+  <rect x="205" y="235" width="90" height="15" rx="2" fill="#bdc3c7" />
+  
+  <!-- 鼠标 -->
+  <ellipse cx="320" cy="242.5" rx="10" ry="15" fill="#95a5a6" />
+  
+  <!-- 产品信息 -->
+  <text x="200" y="280" font-family="Arial" font-size="14" fill="black" text-anchor="middle">台式电脑 2</text>
+</svg> 

@@ -323,7 +323,7 @@ const testBatchCreateAttributes = async () => {
         storeId: testConfig.storeId,
         categoryId: testConfig.categoryId,
         attributeName: `批量属性1_${Date.now()}`,
-        attributeType: 'TEXT',
+        attributeType: 'TEXT' as const,
         isBasicAttribute: true,
         isRequired: true
       },
@@ -331,7 +331,7 @@ const testBatchCreateAttributes = async () => {
         storeId: testConfig.storeId,
         categoryId: testConfig.categoryId,
         attributeName: `批量属性2_${Date.now()}`,
-        attributeType: 'ENUM',
+        attributeType: 'ENUM' as const,
         isBasicAttribute: false,
         isRequired: false,
         options: ['选项1', '选项2', '选项3']
@@ -340,7 +340,7 @@ const testBatchCreateAttributes = async () => {
         storeId: testConfig.storeId,
         categoryId: testConfig.categoryId,
         attributeName: `批量属性3_${Date.now()}`,
-        attributeType: 'BOOLEAN',
+        attributeType: 'BOOLEAN' as const,
         isBasicAttribute: false,
         isRequired: true
       }
@@ -410,32 +410,32 @@ const createTestAttributes = async () => {
   const attributes = [
     {
       attributeName: '商品名称',
-      attributeType: 'TEXT',
+      attributeType: 'TEXT' as const,
       isBasicAttribute: true,
       isRequired: true
     },
     {
       attributeName: '商品价格',
-      attributeType: 'NUMBER',
+      attributeType: 'NUMBER' as const,
       isBasicAttribute: true,
       isRequired: true
     },
     {
       attributeName: '商品颜色',
-      attributeType: 'ENUM',
+      attributeType: 'ENUM' as const,
       isBasicAttribute: false,
       isRequired: false,
       options: ['红色', '蓝色', '绿色', '黑色', '白色']
     },
     {
       attributeName: '是否包邮',
-      attributeType: 'BOOLEAN',
+      attributeType: 'BOOLEAN' as const,
       isBasicAttribute: false,
       isRequired: false
     },
     {
       attributeName: '生产日期',
-      attributeType: 'DATE',
+      attributeType: 'DATE' as const,
       isBasicAttribute: false,
       isRequired: false
     }

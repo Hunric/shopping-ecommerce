@@ -1,17 +1,85 @@
+<!--
+/**
+ * 电商平台商家登录页面组件
+ * 
+ * @description 商家端登录页面，提供邮箱验证码登录和密码登录功能。
+ *              采用现代化的双栏布局设计，左侧为品牌展示，右侧为登录表单。
+ * 
+ * @features
+ * - 邮箱验证码登录
+ * - 密码登录
+ * - 登录方式切换
+ * - 实时邮箱格式验证
+ * - 验证码发送倒计时（60秒）
+ * - 登录状态管理
+ * - 自动跳转到商家后台
+ * - 响应式布局设计
+ * - 错误提示和成功反馈
+ * - 防重复提交保护
+ * 
+ * @layout
+ * - 左侧：品牌Logo、欢迎信息、注册引导
+ * - 右侧：登录表单、登录方式切换、登录按钮
+ * 
+ * @validation
+ * - 邮箱格式验证（正则表达式）
+ * - 必填字段验证
+ * - 验证码长度验证
+ * - 密码长度验证
+ * 
+ * @state_management
+ * - 使用Pinia进行认证状态管理
+ * - localStorage持久化存储
+ * - JWT token自动管理
+ * 
+ * @navigation
+ * - 登录成功 -> /merchant/dashboard
+ * - 注册链接 -> /merchant/register
+ * 
+ * @dependencies
+ * - Vue 3 Composition API
+ * - Vue Router 4
+ * - Pinia状态管理
+ * - @/api/merchant: 商家API接口
+ * - @/store/modules/auth: 认证状态管理
+ * 
+ * @author 开发团队
+ * @version 1.1.0
+ * @since 2024
+ * 
+ * @see {@link ../register/index.vue} 商家注册页面
+ * @see {@link ../dashboard/index.vue} 商家后台首页
+ */
+-->
+
 <template>
   <div class="merchant-login-container">
     <div class="login-box">
       <div class="login-left">
         <div class="logo">Ecommerce-Shopping</div>
         <h2 class="welcome">Welcome Back!</h2>
-        <p class="description">请输入您的邮箱进行验证</p>
-        <p class="description">登录商家管理后台系统</p>
+        <p class="description">请选择登录方式进入</p>
+        <p class="description">商家管理后台系统</p>
         <router-link to="/merchant/register">
           <button class="signup-btn">SIGN UP</button>
         </router-link>
       </div>
       <div class="login-right">
         <h2 class="title">Sign in to System</h2>
+        <div class="login-type-switch">
+          <button 
+            :class="['switch-btn', { active: !isPasswordLogin }]" 
+            @click="isPasswordLogin = false"
+          >
+            验证码登录
+          </button>
+          <button 
+            :class="['switch-btn', { active: isPasswordLogin }]" 
+            @click="isPasswordLogin = true"
+          >
+            密码登录
+          </button>
+        </div>
         <div v-if="message" :class="['message', { 'error': !success, 'success': success }]">
           {{ message }}
         </div>
@@ -25,24 +93,37 @@
               :disabled="loading"
             />
           </div>
-          <div class="verification-group">
-            <input 
-              type="text" 
-              class="verification-input" 
-              placeholder="验证码" 
-              v-model="verifyCode"
-              :disabled="loading"
-            />
-            <button 
-              class="verification-btn" 
-              @click="sendVerifyCode" 
-              :disabled="countdown > 0 || loading"
-            >
-              {{ sendBtnText }}
-            </button>
-          </div>
+          <template v-if="!isPasswordLogin">
+            <div class="verification-group">
+              <input 
+                type="text" 
+                class="verification-input" 
+                placeholder="验证码" 
+                v-model="verifyCode"
+                :disabled="loading"
+              />
+              <button 
+                class="verification-btn" 
+                @click="sendVerifyCode" 
+                :disabled="countdown > 0 || loading"
+              >
+                {{ sendBtnText }}
+              </button>
+            </div>
+          </template>
+          <template v-else>
+            <div class="form-group">
+              <input 
+                type="password" 
+                class="form-control" 
+                placeholder="密码" 
+                v-model="password"
+                :disabled="loading"
+              />
+            </div>
+          </template>
           <div class="forgot-password">
-            <a href="#">忘记密码?</a>
+            <a href="#" @click.prevent="handleForgotPassword">忘记密码?</a>
           </div>
           <button 
             class="signin-btn" 
@@ -70,7 +151,9 @@ const authStore = useAuthStore()
 // 响应式数据
 const email = ref('')
 const verifyCode = ref('')
+const password = ref('')
 const loading = ref(false)
+const isPasswordLogin = ref(false)
 
 // 倒计时逻辑
 const countdown = ref(0)
@@ -96,6 +179,11 @@ const showMessage = (msg: string, isSuccess: boolean) => {
 const validateEmail = (email: string): boolean => {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
   return emailRegex.test(email)
+}
+
+// 验证密码格式
+const validatePassword = (password: string): boolean => {
+  return password.length >= 6
 }
 
 // 发送邮箱验证码
@@ -146,6 +234,11 @@ const sendVerifyCode = async () => {
   }
 }
 
+// 处理忘记密码
+const handleForgotPassword = () => {
+  router.push('/merchant/forget-password')
+}
+
 // 登录逻辑
 const login = async () => {
   // 验证输入
@@ -159,33 +252,54 @@ const login = async () => {
     return
   }
   
-  if (!verifyCode.value.trim()) {
-    showMessage('请输入验证码', false)
-    return
+  if (isPasswordLogin.value) {
+    if (!password.value) {
+      showMessage('请输入密码', false)
+      return
+    }
+    if (!validatePassword(password.value)) {
+      showMessage('密码长度至少为6位', false)
+      return
+    }
+  } else {
+    if (!verifyCode.value.trim()) {
+      showMessage('请输入验证码', false)
+      return
+    }
   }
   
   loading.value = true
   
   try {
-    const response = await merchantApi.login(email.value, verifyCode.value)
+    let response
+    if (isPasswordLogin.value) {
+      response = await merchantApi.loginWithPassword(email.value, password.value)
+    } else {
+      response = await merchantApi.login(email.value, verifyCode.value)
+    }
     
     if (response.data.success) {
+      console.log('登录响应数据:', response.data)
+      
       // 保存认证信息到store
-      authStore.setAuthData(response.data as LoginResponse)
+      await authStore.setAuthData(response.data as LoginResponse)
       
       showMessage('登录成功，正在跳转...', true)
       
-      // 登录成功后跳转到商家后台（暂时跳转到dashboard，将来实现）
+      // 延迟跳转，确保状态已设置
       setTimeout(() => {
         router.push('/merchant/dashboard')
-      }, 1000)
+      }, 500)
     } else {
       showMessage(response.data.message || '登录失败', false)
     }
   } catch (error: any) {
     console.error('登录失败:', error)
-    const errorMessage = error.response?.data?.message || '登录失败，请检查验证码是否正确'
-    showMessage(errorMessage, false)
+    if (error.response?.data?.message) {
+      showMessage(error.response.data.message, false)
+    } else {
+      showMessage('登录失败，请稍后重试', false)
+    }
   } finally {
     loading.value = false
   }
@@ -216,231 +330,220 @@ onUnmounted(() => {
   display: flex;
   justify-content: center;
   align-items: center;
-  height: 100vh;
-  width: 100%;
+  min-height: 100vh;
   background-color: #f5f5f5;
 }
 
 .login-box {
   display: flex;
-  width: 1000px;
+  width: 900px;
   height: 600px;
-  background-color: rgba(255, 255, 255, 0.9);
-  border-radius: 20px;
+  background: white;
+  border-radius: 10px;
   overflow: hidden;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
 }
 
 .login-left {
-  width: 45%;
-  padding: 40px;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: flex-start;
-  background: linear-gradient(135deg, rgba(144, 238, 196, 0.8), rgba(73, 190, 255, 0.8));
+  width: 40%;
+  background: #4A90E2;
+  padding: 50px;
   color: white;
-  user-select: none;
-}
-
-.login-right {
-  width: 55%;
-  padding: 40px 60px;
   display: flex;
   flex-direction: column;
+  align-items: center;
   justify-content: center;
-}
-
-.login-form {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
 }
 
 .logo {
-  font-size: 18px;
+  font-size: 24px;
   font-weight: bold;
   margin-bottom: 30px;
 }
 
 .welcome {
-  font-size: 36px;
-  font-weight: bold;
+  font-size: 28px;
   margin-bottom: 20px;
 }
 
 .description {
+  text-align: center;
+  margin-bottom: 10px;
   font-size: 16px;
-  margin-bottom: 5px;
-  line-height: 1.5;
+  opacity: 0.9;
 }
 
 .signup-btn {
-  margin-top: 40px;
-  padding: 10px 40px;
+  margin-top: 30px;
+  padding: 12px 40px;
   border: 2px solid white;
-  border-radius: 30px;
   background: transparent;
   color: white;
+  border-radius: 25px;
   font-weight: bold;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.3s;
 }
 
 .signup-btn:hover {
-  background-color: rgba(255, 255, 255, 0.2);
+  background: white;
+  color: #4A90E2;
+}
+
+.login-right {
+  width: 60%;
+  padding: 50px;
+  display: flex;
+  flex-direction: column;
 }
 
 .title {
-  font-size: 30px;
-  color: #333;
-  margin-bottom: 20px;
   text-align: center;
+  margin-bottom: 30px;
+  color: #333;
+}
+
+.login-type-switch {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 20px;
+  gap: 10px;
+}
+
+.switch-btn {
+  padding: 8px 20px;
+  border: none;
+  background: #f5f5f5;
+  color: #666;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.switch-btn.active {
+  background: #4A90E2;
+  color: white;
+}
+
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
 }
 
 .form-group {
-  margin-bottom: 10px;
+  position: relative;
 }
 
 .form-control {
   width: 100%;
-  padding: 15px;
+  padding: 12px 15px;
   border: 1px solid #ddd;
   border-radius: 5px;
   font-size: 16px;
-  outline: none;
-  background-color: #FAFAFA;
-  color: #333;
   transition: border-color 0.3s;
 }
 
 .form-control:focus {
-  border-color: #10b5b8;
-}
-
-.form-control:disabled {
-  background-color: #f0f0f0;
-  cursor: not-allowed;
-}
-
-.form-control::placeholder {
-  font-size: 14px;
-  color: #999;
+  border-color: #4A90E2;
+  outline: none;
 }
 
 .verification-group {
   display: flex;
-  margin-bottom: 10px;
+  gap: 10px;
 }
 
 .verification-input {
   flex: 1;
-  padding: 15px;
+  padding: 12px 15px;
   border: 1px solid #ddd;
   border-radius: 5px;
   font-size: 16px;
-  outline: none;
-  margin-right: 10px;
-  background-color: #FAFAFA;
-  color: #333;
-  transition: border-color 0.3s;
-}
-
-.verification-input:focus {
-  border-color: #10b5b8;
-}
-
-.verification-input:disabled {
-  background-color: #f0f0f0;
-  cursor: not-allowed;
-}
-
-.verification-input::placeholder {
-  font-size: 14px;
-  color: #999;
 }
 
 .verification-btn {
-  padding: 0 20px;
-  background-color: #10b5b8;
+  padding: 12px 20px;
+  background: #4A90E2;
   color: white;
   border: none;
   border-radius: 5px;
-  font-size: 14px;
   cursor: pointer;
-  transition: background-color 0.3s;
   white-space: nowrap;
+  transition: background 0.3s;
 }
 
-.verification-btn:hover:not(:disabled) {  
-  background-color: #0e9a9d;
-}
-
-.verification-btn:disabled {  
-  background-color: #ccc;  
+.verification-btn:disabled {
+  background: #ccc;
   cursor: not-allowed;
 }
 
 .forgot-password {
   text-align: right;
-  margin-bottom: 15px;
 }
 
 .forgot-password a {
-  color: #10b5b8;
+  color: #666;
   text-decoration: none;
+  font-size: 14px;
+}
+
+.forgot-password a:hover {
+  color: #4A90E2;
 }
 
 .signin-btn {
-  padding: 15px;
-  background-color: #10b5b8;
+  padding: 12px;
+  background: #4A90E2;
   color: white;
   border: none;
-  border-radius: 30px;
+  border-radius: 5px;
   font-size: 16px;
-  font-weight: bold;
   cursor: pointer;
-  transition: background-color 0.3s;
+  transition: background 0.3s;
 }
 
 .signin-btn:hover:not(:disabled) {
-  background-color: #0e9a9d;
+  background: #357abd;
 }
 
 .signin-btn:disabled {
-  background-color: #ccc;
+  background: #ccc;
   cursor: not-allowed;
 }
 
 .message {
   padding: 10px;
-  margin-bottom: 20px;
   border-radius: 5px;
   text-align: center;
-  font-size: 14px;
-  animation: fadeIn 0.3s ease-in;
+  margin-bottom: 15px;
 }
 
-.error {
-  background-color: #ffebee;
-  color: #d32f2f;
-  border: 1px solid #ffcdd2;
+.message.error {
+  background: #ffe6e6;
+  color: #ff4d4d;
 }
 
-.success {
-  background-color: #e8f5e9;
-  color: #388e3c;
-  border: 1px solid #c8e6c9;
+.message.success {
+  background: #e6ffe6;
+  color: #00cc00;
 }
 
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(-10px);
+@media (max-width: 768px) {
+  .login-box {
+    width: 100%;
+    height: auto;
+    flex-direction: column;
   }
-  to {
-    opacity: 1;
-    transform: translateY(0);
+  
+  .login-left {
+    width: 100%;
+    padding: 30px;
+  }
+  
+  .login-right {
+    width: 100%;
+    padding: 30px;
   }
 }
 </style> 

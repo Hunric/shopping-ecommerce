@@ -411,7 +411,12 @@
                   </el-col>
                   <el-col :span="12">
                     <el-form-item label="属性类型" required>
-                      <el-select v-model="attr.attributeType" placeholder="选择类型" style="width: 100%">
+                      <el-select 
+                        v-model="attr.attributeType" 
+                        placeholder="选择类型" 
+                        style="width: 100%"
+                        @change="handleBatchAttributeTypeChange(attr)"
+                      >
                         <el-option
                           v-for="option in ATTRIBUTE_TYPE_OPTIONS"
                           :key="option.value"
@@ -427,8 +432,20 @@
                   <el-col :span="12">
                     <el-form-item label="基础属性">
                       <div class="batch-switch-item">
-                        <el-switch v-model="attr.isBasicAttribute" />
+                        <el-switch 
+                          v-model="attr.isBasicAttribute" 
+                          @change="handleBatchBasicAttributeChange(attr)"
+                        />
                         <span class="switch-label">用于生成SKU</span>
+                      </div>
+                      <div v-if="attr.isBasicAttribute && attr.attributeType !== 'ENUM'" class="batch-warning">
+                        <el-alert
+                          title="基础属性只能是枚举类型"
+                          type="warning"
+                          :closable="false"
+                          show-icon
+                          size="small"
+                        />
                       </div>
                     </el-form-item>
                   </el-col>
@@ -446,11 +463,15 @@
                   <el-input
                     v-model="attr.optionsText"
                     type="textarea"
-                    placeholder="请输入可选值，每行一个选项&#10;例如：&#10;红色&#10;蓝色&#10;绿色"
+                    :placeholder="getBatchOptionsPlaceholder(attr.isBasicAttribute)"
                     :rows="4"
                     maxlength="500"
                     show-word-limit
                   />
+                  <div v-if="attr.isBasicAttribute" class="options-tip basic-tip">
+                    <el-icon><Warning /></el-icon>
+                    基础属性必须设置可选值，用于生成商品SKU
+                  </div>
                 </el-form-item>
               </el-form>
             </el-card>
@@ -492,7 +513,7 @@
 import { ref, reactive, computed, onMounted, nextTick, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { 
-  Plus, DocumentAdd, Delete, Edit, Box, Setting, Folder, Document, Refresh
+  Plus, DocumentAdd, Delete, Edit, Box, Setting, Folder, Document, Refresh, Warning
 } from '@element-plus/icons-vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/store/modules/auth'
@@ -507,6 +528,7 @@ import {
   canManageAttributes,
   type CategoryAttribute,
   type CreateAttributeRequest,
+  type CreateSingleAttributeRequest,
   type UpdateAttributeRequest,
   ATTRIBUTE_TYPE_OPTIONS,
   getAttributeTypeLabel
@@ -842,7 +864,7 @@ const handleSaveAttribute = async () => {
   submitting.value = true
   try {
     if (attributeDialogMode.value === 'create') {
-      const createData: CreateAttributeRequest = {
+      const createData: CreateSingleAttributeRequest = {
         storeId: currentStoreId.value!,
         categoryId: selectedCategory.value!.categoryId,
         attributeName: attributeForm.attributeName,
@@ -925,11 +947,30 @@ const handleBatchSave = async () => {
     return
   }
   
+  // 验证基础属性必须是枚举类型
+  const invalidBasicAttributes = validAttributes.filter(attr => 
+    attr.isBasicAttribute && attr.attributeType !== 'ENUM'
+  )
+  
+  if (invalidBasicAttributes.length > 0) {
+    ElMessage.error('基础属性只能是枚举类型，请检查设置')
+    return
+  }
+  
+  // 验证枚举类型的基础属性必须有可选值
+  const invalidEnumAttributes = validAttributes.filter(attr => 
+    attr.isBasicAttribute && attr.attributeType === 'ENUM' && 
+    (!attr.optionsText || !attr.optionsText.trim())
+  )
+  
+  if (invalidEnumAttributes.length > 0) {
+    ElMessage.error('枚举类型的基础属性必须设置可选值')
+    return
+  }
+  
   batchSubmitting.value = true
   try {
     const createRequests: CreateAttributeRequest[] = validAttributes.map(attr => ({
-      storeId: currentStoreId.value!,
-      categoryId: selectedCategory.value!.categoryId,
       attributeName: attr.attributeName.trim(),
       attributeType: attr.attributeType as "TEXT" | "NUMBER" | "DATE" | "BOOLEAN" | "ENUM",
       isBasicAttribute: attr.isBasicAttribute,
@@ -1022,6 +1063,37 @@ const getAttributeTypeTagType = (type: string) => {
     'ENUM': 'danger'
   }
   return typeMap[type] || 'info'
+}
+
+const handleBatchAttributeTypeChange = (attr: any) => {
+  if (attr.attributeType !== 'ENUM') {
+    attr.optionsText = ''
+    // 如果当前是基础属性但选择了非枚举类型，自动取消基础属性
+    if (attr.isBasicAttribute) {
+      attr.isBasicAttribute = false
+      attr.isRequired = false
+      ElMessage.warning('基础属性只能是枚举类型，已自动取消基础属性选择')
+    }
+  }
+}
+
+const handleBatchBasicAttributeChange = (attr: any) => {
+  if (attr.isBasicAttribute) {
+    // 基础属性必须是枚举类型且必填
+    if (attr.attributeType !== 'ENUM') {
+      attr.attributeType = 'ENUM'
+      ElMessage.info('基础属性已自动设置为枚举类型')
+    }
+    attr.isRequired = true
+  }
+}
+
+const getBatchOptionsPlaceholder = (isBasicAttribute: boolean) => {
+  if (isBasicAttribute) {
+    return '基础属性必须设置可选值，每行一个选项&#10;例如：&#10;红色&#10;蓝色&#10;绿色'
+  } else {
+    return '请输入可选值，每行一个选项&#10;例如：&#10;红色&#10;蓝色&#10;绿色'
+  }
 }
 </script>
 
@@ -1397,6 +1469,19 @@ const getAttributeTypeTagType = (type: string) => {
   margin: 0;
 }
 
+.basic-tip {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 8px;
+  padding: 8px 12px;
+  background: #fff7e6;
+  border: 1px solid #ffd591;
+  border-radius: 4px;
+  color: #d48806;
+  font-size: 12px;
+}
+
 .dialog-footer {
   display: flex;
   justify-content: flex-end;
@@ -1519,6 +1604,10 @@ const getAttributeTypeTagType = (type: string) => {
 .batch-form .el-form-item__label {
   font-weight: 500;
   color: #303133;
+}
+
+.batch-warning {
+  margin-top: 8px;
 }
 
 .batch-switch-item {

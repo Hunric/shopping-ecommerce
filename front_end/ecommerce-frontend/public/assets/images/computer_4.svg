@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300">
+  <!-- 游戏本底座 -->
+  <rect x="100" y="200" width="200" height="20" rx="5" fill="#2c3e50" />
+  
+  <!-- 游戏本键盘区 -->
+  <rect x="100" y="170" width="200" height="30" rx="5" fill="#2c3e50" />
+  <rect x="110" y="175" width="180" height="20" rx="2" fill="#7f8c8d" />
+  
+  <!-- RGB键盘效果 -->
+  <rect x="115" y="180" width="10" height="10" rx="1" fill="#e74c3c" />
+  <rect x="130" y="180" width="10" height="10" rx="1" fill="#f1c40f" />
+  <rect x="145" y="180" width="10" height="10" rx="1" fill="#2ecc71" />
+  <rect x="160" y="180" width="10" height="10" rx="1" fill="#3498db" />
+  <rect x="175" y="180" width="10" height="10" rx="1" fill="#9b59b6" />
+  <rect x="190" y="180" width="10" height="10" rx="1" fill="#e74c3c" />
+  <rect x="205" y="180" width="10" height="10" rx="1" fill="#f1c40f" />
+  <rect x="220" y="180" width="10" height="10" rx="1" fill="#2ecc71" />
+  <rect x="235" y="180" width="10" height="10" rx="1" fill="#3498db" />
+  <rect x="250" y="180" width="10" height="10" rx="1" fill="#9b59b6" />
+  <rect x="265" y="180" width="10" height="10" rx="1" fill="#e74c3c" />
+  
+  <!-- 游戏本屏幕 -->
+  <rect x="100" y="70" width="200" height="100" rx="5" fill="#2c3e50" />
+  <rect x="110" y="80" width="180" height="80" rx="2" fill="#34495e" />
+  
+  <!-- 屏幕内容 - 游戏画面 -->
+  <rect x="120" y="90" width="160" height="60" rx="2" fill="#e74c3c" opacity="0.5" />
+  <path d="M140,110 L180,110 L160,140 Z" fill="#f1c40f" />
+  <circle cx="200" cy="115" r="15" fill="#3498db" />
+  <rect x="220" y="100" width="20" height="40" rx="2" fill="#2ecc71" />
+  
+  <!-- 产品信息 -->
+  <text x="200" y="240" font-family="Arial" font-size="14" fill="white" text-anchor="middle">游戏笔记本电脑 4</text>
+  <text x="200" y="260" font-family="Arial" font-size="10" fill="#bdc3c7" text-anchor="middle">高性能显卡 | RGB键盘</text>
+</svg> 

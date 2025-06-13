@@ -34,6 +34,13 @@ public class SpuInfoServiceImpl implements SpuInfoService {
         if (spuInfoMapper.checkSpuNameExists(spuCreateDTO.getStoreId(), spuCreateDTO.getSpuName(), null) > 0) {
             throw new RuntimeException("商品名称已存在");
         }
+        
+        // 验证必要字段
+        if (spuCreateDTO.getStoreId() == null || spuCreateDTO.getMerchantId() == null
+                || spuCreateDTO.getCategoryId() == null || spuCreateDTO.getSpuName() == null
+                || spuCreateDTO.getDisplayPrice() == null) {
+            throw new IllegalArgumentException("必要字段不能为空");
+        }
 
         // 创建SPU
         SpuInfo spuInfo = new SpuInfo();
@@ -68,7 +75,7 @@ public class SpuInfoServiceImpl implements SpuInfoService {
                     skuInfo.setWarnStock(10);
                 }
                 if (skuInfo.getStatus() == null) {
-                    skuInfo.setStatus(2); // 默认下架
+                    skuInfo.setStatus(2); // 默认状态
                 }
 
                 int skuResult = skuInfoMapper.insertSku(skuInfo);
@@ -77,8 +84,30 @@ public class SpuInfoServiceImpl implements SpuInfoService {
                 }
             }
         }
-
+        
         return spuInfo;
+    }
+    
+    @Override
+    @Transactional
+    public List<SpuInfo> batchCreateSpu(List<SpuCreateDTO> spuCreateDTOList) {
+        if (spuCreateDTOList == null || spuCreateDTOList.isEmpty()) {
+            throw new IllegalArgumentException("商品列表不能为空");
+        }
+        
+        List<SpuInfo> createdSpus = new ArrayList<>();
+        
+        for (SpuCreateDTO spuCreateDTO : spuCreateDTOList) {
+            try {
+                SpuInfo spuInfo = createSpu(spuCreateDTO);
+                createdSpus.add(spuInfo);
+            } catch (Exception e) {
+                // 记录错误但继续处理其他商品
+                System.err.println("创建商品失败: " + spuCreateDTO.getSpuName() + ", 错误: " + e.getMessage());
+            }
+        }
+        
+        return createdSpus;
     }
 
     @Override
@@ -358,5 +387,11 @@ public class SpuInfoServiceImpl implements SpuInfoService {
             generateCombinations(attributeNames, attributeValuesList, index + 1, currentCombination, combinations);
             currentCombination.remove(attributeName);
         }
+    }
+    
+    @Override
+    public Integer getStoreMerchantId(Integer storeId) {
+        // 从数据库中获取店铺对应的商家ID
+        return spuInfoMapper.getStoreMerchantId(storeId);
     }
 } 

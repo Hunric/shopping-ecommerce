@@ -41,14 +41,12 @@ public class JwtUtil {
      * 生成访问令牌
      * @param merchantId 商家ID
      * @param email 商家邮箱
-     * @param merchantName 商家名称
      * @return JWT令牌
      */
-    public String generateAccessToken(Long merchantId, String email, String merchantName) {
+    public String generateAccessToken(Long merchantId, String email) {
         Map<String, Object> claims = new HashMap<>();
         claims.put("merchantId", merchantId);
         claims.put("email", email);
-        claims.put("merchantName", merchantName);
         claims.put("type", "access");
         
         return createToken(claims, email, jwtExpiration);
@@ -106,16 +104,6 @@ public class JwtUtil {
     public Long getMerchantIdFromToken(String token) {
         Claims claims = getClaimsFromToken(token);
         return claims.get("merchantId", Long.class);
-    }
-    
-    /**
-     * 从令牌中获取商家名称
-     * @param token JWT令牌
-     * @return 商家名称
-     */
-    public String getMerchantNameFromToken(String token) {
-        Claims claims = getClaimsFromToken(token);
-        return claims.get("merchantName", String.class);
     }
     
     /**

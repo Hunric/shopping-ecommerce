@@ -156,9 +156,8 @@ public class TestController {
         try {
             // 使用真实的JWT工具类生成token
             String email = "test@example.com";
-            String merchantName = "测试商家";
             
-            String accessToken = jwtUtil.generateAccessToken(merchantId.longValue(), email, merchantName);
+            String accessToken = jwtUtil.generateAccessToken(merchantId.longValue(), email);
             String refreshToken = jwtUtil.generateRefreshToken(merchantId.longValue(), email);
             long expiresIn = jwtUtil.getTokenRemainingTime(accessToken);
             
@@ -168,7 +167,6 @@ public class TestController {
             tokenInfo.put("tokenType", "Bearer");
             tokenInfo.put("expiresIn", expiresIn);
             tokenInfo.put("merchantId", merchantId);
-            tokenInfo.put("merchantName", merchantName);
             tokenInfo.put("email", email);
             tokenInfo.put("note", "这是一个有效的测试Token，可用于API测试");
             

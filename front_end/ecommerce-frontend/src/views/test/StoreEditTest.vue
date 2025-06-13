@@ -40,7 +40,7 @@
           <p><strong>店铺名称:</strong> {{ selectedStore.storeName }}</p>
           <p><strong>店铺描述:</strong> {{ selectedStore.storeDescription || '暂无描述' }}</p>
           <p><strong>店铺状态:</strong> {{ getStatusText(selectedStore.status) }}</p>
-          <p><strong>创建时间:</strong> {{ formatDate(selectedStore.createTime) }}</p>
+          <p><strong>信用评分:</strong> {{ selectedStore.creditScore }}</p>
         </div>
         
         <el-button 
@@ -72,7 +72,8 @@ import { ref, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { useAuthStore } from '@/store/modules/auth'
 import { getStoresByMerchantId, updateStore } from '@/api/merchant/store'
-import type { Store, StoreUpdateData } from '@/api/merchant/store'
+import type { Store, StoreUpdateData, StoreCreateData } from '@/api/merchant/store'
+import type { StoreExtendedCreateData, StoreExtendedUpdateData } from '@/api/merchant/storeExtended'
 import StoreForm from '@/components/merchant/StoreForm.vue'
 
 const authStore = useAuthStore()
@@ -107,9 +108,14 @@ const handleStoreSelect = (storeId: number) => {
   showEditForm.value = false
 }
 
-const handleUpdateSuccess = async (updateData: StoreUpdateData, storeId: number) => {
+const handleUpdateSuccess = async (updateData: StoreCreateData | StoreUpdateData | StoreExtendedCreateData | StoreExtendedUpdateData, storeId?: number) => {
+  if (!storeId) {
+    ElMessage.error('店铺ID缺失')
+    return
+  }
+  
   try {
-    const response = await updateStore(storeId, updateData)
+    const response = await updateStore(storeId, updateData as StoreUpdateData)
     if (response.success && response.data) {
       // 更新本地数据
       const storeIndex = stores.value.findIndex(store => store.storeId === storeId)

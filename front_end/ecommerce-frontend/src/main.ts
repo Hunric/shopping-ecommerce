@@ -1,3 +1,33 @@
+/**
+ * 电商平台前端应用程序主入口文件
+ * 
+ * @description 这是Vue 3 + TypeScript + Vite构建的电商平台前端应用的主入口文件。
+ *              负责应用程序的初始化、依赖项配置、插件注册和应用挂载。
+ * 
+ * @features
+ * - Vue 3应用程序创建和配置
+ * - Pinia状态管理集成
+ * - Element Plus UI框架集成和中文本地化
+ * - Vue Router路由系统配置
+ * - 全局样式导入
+ * - Element Plus图标全局注册
+ * - 浏览器扩展程序错误处理
+ * 
+ * @dependencies
+ * - vue: Vue 3框架核心
+ * - pinia: 状态管理库
+ * - element-plus: UI组件库
+ * - vue-router: 路由管理
+ * 
+ * @author 开发团队
+ * @version 1.0.0
+ * @since 2024
+ * 
+ * @see {@link https://vuejs.org/} Vue.js官方文档
+ * @see {@link https://element-plus.org/} Element Plus文档
+ * @see {@link https://pinia.vuejs.org/} Pinia文档
+ */
+
 // 处理浏览器扩展程序的runtime.lastError错误
 if (typeof window !== 'undefined') {
   // 忽略Chrome扩展程序的连接错误

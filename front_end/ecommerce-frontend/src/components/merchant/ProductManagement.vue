@@ -61,6 +61,10 @@
           <el-icon><Plus /></el-icon>
           新建商品
         </el-button>
+        <el-button type="primary" @click="handleBatchCreateProduct">
+          <el-icon><Plus /></el-icon>
+          批量创建
+        </el-button>
         <el-button 
           v-if="selectedProducts.length > 0" 
           type="success" 
@@ -142,9 +146,12 @@
               <div class="product-image">
                 <img
                   v-if="row.productImage"
-                  :src="row.productImage"
+                  :src="getImageUrl(row.productImage)"
                   :alt="row.spuName"
                   @error="handleImageError"
+                  @click="previewImage(row.productImage)"
+                  class="product-thumbnail"
+                  :loading="'lazy'"
                 />
                 <el-icon v-else class="default-image"><Picture /></el-icon>
               </div>
@@ -335,6 +342,134 @@
         <el-button type="primary" @click="handleConfirmCopy">确认复制</el-button>
       </template>
     </el-dialog>
+
+    <!-- 批量创建商品对话框 -->
+    <el-dialog
+      v-model="batchCreateVisible"
+      title="批量创建商品"
+      width="700px"
+      :close-on-click-modal="false"
+      @close="handleBatchCreateClose"
+    >
+      <div class="batch-create-container">
+        <div class="batch-create-tips">
+          <el-alert
+            title="批量创建商品说明"
+            type="info"
+            description="您可以通过复制现有商品或上传Excel模板来批量创建商品。请确保数据格式正确，否则可能导致创建失败。"
+            show-icon
+            :closable="false"
+          />
+        </div>
+
+        <div class="batch-create-options">
+          <el-tabs v-model="batchCreateTab">
+            <el-tab-pane label="复制现有商品" name="copy">
+              <div class="copy-products">
+                <el-form :model="batchCopyForm" label-width="100px">
+                  <el-form-item label="选择商品">
+                    <el-select
+                      v-model="batchCopyForm.selectedProducts"
+                      multiple
+                      filterable
+                      placeholder="请选择要复制的商品"
+                      style="width: 100%"
+                    >
+                      <el-option
+                        v-for="product in copyProductOptions"
+                        :key="product.spuId"
+                        :label="product.spuName"
+                        :value="product.spuId"
+                      />
+                    </el-select>
+                  </el-form-item>
+                  <el-form-item label="名称前缀">
+                    <el-input
+                      v-model="batchCopyForm.namePrefix"
+                      placeholder="新商品名称前缀，例如：'复制-'"
+                    />
+                  </el-form-item>
+                  <el-form-item label="复制数量">
+                    <el-input-number
+                      v-model="batchCopyForm.copyCount"
+                      :min="1"
+                      :max="10"
+                      placeholder="每个商品复制的数量"
+                    />
+                  </el-form-item>
+                </el-form>
+              </div>
+            </el-tab-pane>
+            
+            <el-tab-pane label="模板导入" name="template">
+              <div class="template-import">
+                <div class="template-actions">
+                  <div class="action-buttons">
+                    <el-button type="primary" @click="downloadTemplate">下载Excel模板</el-button>
+                    <el-upload
+                      class="upload-template"
+                      action="#"
+                      :auto-upload="false"
+                      :show-file-list="true"
+                      :limit="1"
+                      :on-change="handleTemplateFileChange"
+                      :on-exceed="handleUploadExceed"
+                      :on-remove="handleRemoveFile"
+                      accept=".xlsx,.xls"
+                    >
+                      <el-button type="primary">选择Excel文件</el-button>
+                    </el-upload>
+                  </div>
+                  <div class="upload-tip">
+                    <div class="el-upload__tip">仅支持.xlsx或.xls文件，请严格按照模板格式填写</div>
+                  </div>
+                </div>
+                
+                <div v-if="templateFile" class="preview-container">
+                  <div class="file-info">
+                    <span>已选择文件: {{ templateFile.name }}</span>
+                    <span>大小: {{ formatFileSize(templateFile.size) }}</span>
+                  </div>
+                </div>
+              </div>
+            </el-tab-pane>
+          </el-tabs>
+        </div>
+      </div>
+      
+      <template #footer>
+        <el-button @click="batchCreateVisible = false">取消</el-button>
+        <el-button 
+          type="primary" 
+          @click="handleConfirmBatchCreate"
+          :loading="batchCreating"
+        >开始创建</el-button>
+      </template>
+    </el-dialog>
+
+    <!-- 图片预览对话框 -->
+    <el-dialog
+      v-model="imagePreviewVisible"
+      :title="previewTitle"
+      width="500px"
+      :close-on-click-modal="true"
+      destroy-on-close
+      class="image-preview-dialog"
+    >
+      <div class="image-preview-container">
+        <img
+          v-if="previewImageUrl"
+          :src="getImageUrl(previewImageUrl)"
+          alt="商品预览图"
+          class="preview-image"
+          @error="handlePreviewImageError"
+        />
+        <div v-else class="preview-image-error">
+          <el-icon><Picture /></el-icon>
+          <p>图片加载失败</p>
+        </div>
+      </div>
+    </el-dialog>
   </div>
 </template>
 
@@ -349,9 +484,9 @@ import {
 // 导入API和类型
 import {
   getSPUList, getSPUStats, deleteSPU, batchDeleteSPU, publishSPU, unpublishSPU,
-  batchPublishSPU, batchUnpublishSPU, copySPU,
+  batchPublishSPU, batchUnpublishSPU, copySPU, batchCreateSPU,
   type SPU, type SKU, type SPUQueryParams, type SPUStats, type SPUPageResponse,
-  getSPUStatusLabel, getSPUStatusType, SPU_STATUS_OPTIONS
+  getSPUStatusLabel, getSPUStatusType, SPU_STATUS_OPTIONS, type SPUCreateData
 } from '@/api/merchant/spu'
 import request from '@/utils/request'
 
@@ -409,6 +544,27 @@ const currentProduct = ref<SPU | null>(null)
 const copyForm = ref({
   newName: ''
 })
+
+// 批量创建对话框状态
+const batchCreateVisible = ref(false)
+const batchCreateTab = ref('copy')
+const batchCreating = ref(false)
+const templateFile = ref<File | null>(null)
+
+// 批量复制表单
+const batchCopyForm = ref({
+  selectedProducts: [] as number[],
+  namePrefix: '复制-',
+  copyCount: 1
+})
+
+// 复制选项
+const copyProductOptions = ref<SPU[]>([])
+
+// 图片预览
+const imagePreviewVisible = ref(false)
+const previewImageUrl = ref('')
+const previewTitle = ref('商品图片预览')
 
 // 计算属性
 const queryParams = computed<SPUQueryParams>(() => ({
@@ -799,9 +955,69 @@ const formatDate = (dateString?: string): string => {
   }
 }
 
+const getImageUrl = (url: string): string => {
+  if (!url) return '/assets/images/placeholder-image.svg'
+  
+  // 检查URL是否合法
+  try {
+    new URL(url)
+    
+    // 处理fakestoreapi和example.com图片
+    if (url.includes('fakestoreapi.com') || url.includes('example.com')) {
+      // 解析URL获取路径部分
+      const urlPath = new URL(url).pathname
+      
+      // 检查是否为手机图片
+      if (urlPath.includes('phone_')) {
+        const phoneNumber = urlPath.match(/phone_(\d+)/)?.[1] || '1'
+        const phoneIndex = parseInt(phoneNumber) % 5 + 1 // 1-5之间循环
+        return `/assets/images/phone_${phoneIndex}.svg`
+      }
+      
+      // 检查是否为电脑图片
+      if (urlPath.includes('computer_')) {
+        const computerNumber = urlPath.match(/computer_(\d+)/)?.[1] || '1'
+        const computerIndex = parseInt(computerNumber) % 5 + 1 // 1-5之间循环
+        return `/assets/images/computer_${computerIndex}.svg`
+      }
+      
+      // 其他情况返回通用商品图片
+      return '/assets/images/product-default.svg'
+    }
+    
+    // 确保HTTPS链接正确
+    if (url.startsWith('http:')) {
+      url = url.replace('http:', 'https:')
+    }
+    
+    return url
+  } catch (e) {
+    // 如果URL不合法，返回本地占位图
+    console.warn('无效的图片URL:', url)
+    return '/assets/images/placeholder-image.svg'
+  }
+}
+
 const handleImageError = (event: Event) => {
   const img = event.target as HTMLImageElement
-  img.style.display = 'none'
+  // 记录错误信息用于调试
+  console.warn('图片加载失败:', img.src)
+  img.src = '/assets/images/placeholder-image.svg'
+  img.classList.add('image-error')
+}
+
+const handlePreviewImageError = (event: Event) => {
+  const img = event.target as HTMLImageElement
+  console.warn('预览图片加载失败:', img.src)
+  img.src = '/assets/images/placeholder-image.svg'
+  img.classList.add('preview-error')
+}
+
+const previewImage = (imageUrl: string) => {
+  if (!imageUrl) return
+  previewImageUrl.value = imageUrl
+  previewTitle.value = '商品图片预览'
+  imagePreviewVisible.value = true
 }
 
 // 监听查询参数变化
@@ -814,6 +1030,275 @@ onMounted(() => {
   loadProductList()
   loadStats()
 })
+
+// 打开批量创建对话框
+const handleBatchCreateProduct = async () => {
+  batchCreateVisible.value = true
+  
+  // 加载可复制的商品列表
+  if (copyProductOptions.value.length === 0) {
+    try {
+      // 获取所有商品作为复制选项
+      const response = await getSPUList({
+        storeId: props.storeId,
+        page: 1,
+        pageSize: 100 // 限制获取数量
+      })
+      
+      if (response.success && response.data) {
+        copyProductOptions.value = response.data.list || []
+      }
+    } catch (error) {
+      console.error('加载商品列表失败:', error)
+    }
+  }
+}
+
+// 关闭批量创建对话框
+const handleBatchCreateClose = () => {
+  batchCopyForm.value = {
+    selectedProducts: [],
+    namePrefix: '复制-',
+    copyCount: 1
+  }
+  templateFile.value = null
+  batchCreateTab.value = 'copy'
+}
+
+// 处理文件选择变更
+const handleTemplateFileChange = (file: any) => {
+  templateFile.value = file.raw
+}
+
+// 处理超出文件限制
+const handleUploadExceed = () => {
+  ElMessage.warning('只能上传一个文件')
+}
+
+// 处理移除文件
+const handleRemoveFile = () => {
+  templateFile.value = null
+}
+
+// 格式化文件大小
+const formatFileSize = (size: number): string => {
+  if (size < 1024) {
+    return `${size} B`
+  } else if (size < 1024 * 1024) {
+    return `${(size / 1024).toFixed(2)} KB`
+  } else {
+    return `${(size / (1024 * 1024)).toFixed(2)} MB`
+  }
+}
+
+// 确认批量创建
+const handleConfirmBatchCreate = async () => {
+  if (batchCreateTab.value === 'copy') {
+    await handleCopyProducts()
+  } else if (batchCreateTab.value === 'template' && templateFile.value) {
+    await handleImportTemplate()
+  } else {
+    ElMessage.warning('请先选择商品或上传模板文件')
+  }
+}
+
+// 处理复制商品批量创建
+const handleCopyProducts = async () => {
+  if (batchCopyForm.value.selectedProducts.length === 0) {
+    ElMessage.warning('请先选择要复制的商品')
+    return
+  }
+  
+  batchCreating.value = true
+  
+  try {
+    // 获取选中的商品详情
+    const productsToCopy: SPU[] = []
+    for (const spuId of batchCopyForm.value.selectedProducts) {
+      try {
+        const response = await request({
+          url: `/api/merchant/spu/${spuId}`,
+          method: 'get'
+        })
+        
+        if (response.data?.success && response.data?.data) {
+          productsToCopy.push(response.data.data)
+        }
+      } catch (error) {
+        console.error(`获取商品详情失败: ${spuId}`, error)
+      }
+    }
+    
+    if (productsToCopy.length === 0) {
+      throw new Error('未能获取到有效的商品信息')
+    }
+    
+    // 准备批量创建数据
+    const batchProducts: SPUCreateData[] = []
+    
+    // 为每个选中的商品创建指定数量的副本
+    for (const product of productsToCopy) {
+      for (let i = 0; i < batchCopyForm.value.copyCount; i++) {
+        // 构建新商品数据
+        const newProduct: SPUCreateData = {
+          merchantId: product.merchantId,
+          storeId: product.storeId,
+          categoryId: product.categoryId,
+          spuName: `${batchCopyForm.value.namePrefix}${product.spuName}-${i + 1}`,
+          spuDescription: product.spuDescription,
+          productImage: product.productImage,
+          displayPrice: product.displayPrice,
+          basicAttributes: product.basicAttributes,
+          nonBasicAttributes: product.nonBasicAttributes,
+          brandName: product.brandName,
+          sellingPoint: product.sellingPoint,
+          unit: product.unit,
+          status: 'draft', // 默认为草稿状态
+          skus: [] // 临时空数组，将复制原商品的SKU
+        }
+        
+        // 获取原商品的SKU
+        if (product.spuId) {
+          try {
+            const skuResponse = await request({
+              url: `/api/merchant/sku/spu/${product.spuId}`,
+              method: 'get'
+            })
+            
+            if (skuResponse.data?.success && skuResponse.data?.data) {
+              const skus = skuResponse.data.data
+              
+              // 复制SKU信息（忽略ID等字段）
+              newProduct.skus = skus.map((sku: SKU) => ({
+                skuName: `${sku.skuName}-${i + 1}`,
+                salePrice: sku.salePrice,
+                stockQuantity: sku.stockQuantity,
+                attributeCombination: sku.attributeCombination,
+                status: 'active', // 默认为活跃状态
+                warnStock: sku.warnStock
+              }))
+            }
+          } catch (error) {
+            console.error(`获取SKU失败: ${product.spuId}`, error)
+          }
+        }
+        
+        batchProducts.push(newProduct)
+      }
+    }
+    
+    // 发送批量创建请求
+    const response = await batchCreateSPU(batchProducts)
+    
+    if (response.success) {
+      ElMessage.success(`批量创建成功: 已创建 ${response.data?.length || 0} 个商品`)
+      batchCreateVisible.value = false
+      refreshProductList() // 刷新商品列表
+    } else {
+      throw new Error(response.message || '批量创建失败')
+    }
+  } catch (error: any) {
+    ElMessage.error(`批量创建失败: ${error.message || '未知错误'}`)
+    console.error('批量创建失败:', error)
+  } finally {
+    batchCreating.value = false
+  }
+}
+
+// 处理模板导入批量创建
+const handleImportTemplate = async () => {
+  if (!templateFile.value) {
+    ElMessage.warning('请先上传Excel模板文件')
+    return
+  }
+  
+  batchCreating.value = true
+  
+  try {
+    console.log('开始上传模板文件:', templateFile.value.name, '大小:', templateFile.value.size, '类型:', templateFile.value.type)
+    console.log('当前店铺ID:', props.storeId)
+    
+    // 检查storeId是否有效
+    if (!props.storeId || props.storeId <= 0) {
+      throw new Error('店铺ID无效，请重新登录')
+    }
+    
+    // 创建FormData对象上传文件
+    const formData = new FormData()
+    formData.append('file', templateFile.value)
+    formData.append('storeId', props.storeId.toString())
+    
+    // 检查FormData内容
+    console.log('FormData内容:', Array.from(formData.entries()).map(entry => `${entry[0]}: ${entry[1]}`))
+    
+    // 获取token
+    const token = localStorage.getItem('token')
+    
+    // 上传并解析Excel文件
+    const parseResponse = await request({
+      url: '/api/merchant/spu/parse-template',
+      method: 'post',
+      data: formData,
+      headers: {
+        'Content-Type': 'multipart/form-data',
+        'Authorization': token ? `Bearer ${token}` : ''
+      }
+    })
+    
+    console.log('模板解析响应:', parseResponse)
+    
+    if (!parseResponse.data?.success) {
+      console.error('模板解析失败响应详情:', parseResponse.data)
+      throw new Error(parseResponse.data?.message || '解析模板失败')
+    }
+    
+    // 获取解析后的商品数据
+    const parsedProducts = parseResponse.data.data
+    
+    if (!parsedProducts || parsedProducts.length === 0) {
+      throw new Error('未从模板中解析出有效的商品数据')
+    }
+    
+    console.log('解析商品数据:', parsedProducts)
+    
+    // 批量创建商品
+    const response = await batchCreateSPU(parsedProducts)
+    
+    if (response.success) {
+      ElMessage.success(`批量创建成功: 已创建 ${response.data?.length || 0} 个商品`)
+      batchCreateVisible.value = false
+      refreshProductList() // 刷新商品列表
+    } else {
+      throw new Error(response.message || '批量创建失败')
+    }
+  } catch (error: any) {
+    // 详细记录错误信息
+    console.error('模板导入失败详细信息:', error)
+    console.error('错误响应:', error.response?.data)
+    console.error('错误状态码:', error.response?.status)
+    
+    let errorMessage = error.message || '未知错误'
+    if (error.response?.data?.message) {
+      errorMessage = error.response.data.message
+    }
+    
+    ElMessage.error(`模板导入失败: ${errorMessage}`)
+    console.error('模板导入失败:', error)
+  } finally {
+    batchCreating.value = false
+  }
+}
+
+// 下载Excel模板
+const downloadTemplate = () => {
+  // 使用后端API下载模板
+  const templateUrl = '/api/merchant/spu/template/download'
+  
+  // 使用window.open下载
+  window.open(templateUrl, '_blank')
+  
+  ElMessage.success('模板下载中，请稍候')
+}
 </script>
 
 <style scoped>
@@ -955,8 +1440,8 @@ onMounted(() => {
 }
 
 .product-image {
-  width: 56px;
-  height: 56px;
+  width: 70px;
+  height: 70px;
   border-radius: 8px;
   overflow: hidden;
   background: #f8f9fa;
@@ -964,13 +1449,15 @@ onMounted(() => {
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  border: 2px solid #e9ecef;
+  border: 1px solid #e9ecef;
   transition: all 0.3s ease;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
 }
 
 .product-image:hover {
   border-color: #409eff;
   transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 .product-image img {
@@ -978,14 +1465,22 @@ onMounted(() => {
   height: 100%;
   object-fit: cover;
   transition: transform 0.3s ease;
+  cursor: pointer;
 }
 
 .product-image img:hover {
   transform: scale(1.1);
 }
 
+.product-image img.image-error {
+  object-fit: contain;
+  padding: 8px;
+  opacity: 0.7;
+  background-color: #f8f8f8;
+}
+
 .default-image {
-  font-size: 24px;
+  font-size: 28px;
   color: #c0c4cc;
 }
 
@@ -1402,8 +1897,8 @@ onMounted(() => {
   }
   
   .product-image {
-    width: 48px;
-    height: 48px;
+    width: 60px;
+    height: 60px;
   }
   
   .product-name {
@@ -1439,8 +1934,8 @@ onMounted(() => {
   }
   
   .product-image {
-    width: 40px;
-    height: 40px;
+    width: 50px;
+    height: 50px;
   }
   
   .product-name {
@@ -1545,8 +2040,8 @@ onMounted(() => {
   }
   
   .product-image {
-    width: 36px;
-    height: 36px;
+    width: 45px;
+    height: 45px;
   }
   
   .product-details {
@@ -1642,8 +2137,8 @@ onMounted(() => {
   }
   
   .product-image {
-    width: 32px;
-    height: 32px;
+    width: 40px;
+    height: 40px;
   }
   
   .product-name {
@@ -1681,5 +2176,112 @@ onMounted(() => {
     padding: 1px 4px;
     font-size: 9px;
   }
+}
+
+.template-import {
+  padding: 20px 0;
+}
+
+.template-actions {
+  margin-bottom: 20px;
+}
+
+.action-buttons {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 15px;
+  margin-bottom: 10px;
+  height: 40px;
+}
+
+.upload-template {
+  display: inline-flex;
+  align-items: center;
+  height: 100%;
+}
+
+.upload-tip {
+  margin-top: 10px;
+}
+
+.preview-container {
+  margin-top: 20px;
+  padding: 15px;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  background-color: #f9f9f9;
+}
+
+.file-info {
+  display: flex;
+  justify-content: space-between;
+}
+
+/* 确保上传组件内部的按钮样式对齐 */
+:deep(.el-upload) {
+  display: flex;
+  align-items: center;
+  height: 100%;
+}
+
+:deep(.el-upload--text) {
+  height: 100%;
+}
+
+:deep(.el-upload-list) {
+  width: 100%;
+  margin-top: 10px;
+}
+
+.template-actions .el-button {
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 添加图片预览对话框样式 */
+.image-preview-dialog :deep(.el-dialog__body) {
+  padding: 0;
+  background: #f5f5f5;
+}
+
+.image-preview-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 300px;
+  max-height: 70vh;
+  overflow: hidden;
+  background: #f5f5f5;
+}
+
+.preview-image {
+  max-width: 100%;
+  max-height: 70vh;
+  object-fit: contain;
+}
+
+.preview-image.preview-error {
+  max-width: 150px;
+  max-height: 150px;
+  padding: 20px;
+  background-color: #f8f8f8;
+  border-radius: 8px;
+  box-shadow: inset 0 0 10px rgba(0,0,0,0.1);
+}
+
+.preview-image-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #909399;
+}
+
+.preview-image-error .el-icon {
+  font-size: 48px;
+  margin-bottom: 12px;
 }
 </style> 

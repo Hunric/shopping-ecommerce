@@ -1,83 +1,98 @@
+/**
+ * 电商平台前端HTTP请求工具文件
+ * 
+ * @description 基于Axios封装的HTTP请求工具，提供统一的请求/响应处理、
+ *              多服务路由、认证管理、错误处理等功能。支持微服务架构的API调用。
+ * 
+ * @features
+ * - 基于Axios的HTTP客户端封装
+ * - 开发环境和生产环境自动适配
+ * - JWT认证token自动添加
+ * - 统一的请求/响应拦截器
+ * - 详细的请求/响应日志记录
+ * - 错误状态码统一处理
+ * - Element Plus消息提示集成
+ * - 跨域请求支持
+ * 
+ * @environment_handling
+ * - 开发环境: 通过Vite代理转发到后端服务
+ * - 生产环境: 通过Nginx代理统一处理
+ * 
+ * @error_handling
+ * - 401: 认证失败，提示重新登录
+ * - 403: 权限不足
+ * - 404: 资源不存在
+ * - 500: 服务器内部错误
+ * - 网络错误: 连接超时或网络异常
+ * 
+ * @dependencies
+ * - axios: HTTP客户端库
+ * - element-plus: UI组件库（消息提示）
+ * - @/store/modules/auth: 认证状态管理
+ * 
+ * @author 开发团队
+ * @version 1.0.0
+ * @since 2024
+ * 
+ * @see {@link https://axios-http.com/} Axios官方文档
+ * @see {@link https://element-plus.org/} Element Plus文档
+ */
+
 import axios from 'axios'
 import { useAuthStore } from '@/store/modules/auth'
 import { ElMessage } from 'element-plus'
-import { API_CONFIG } from '@/config/api'
-
-// 根据API路径确定服务类型
-const getServiceType = (url: string): 'merchant' | 'file' | 'user' | 'default' => {
-  if (url.startsWith('/api/merchant')) return 'merchant'
-  if (url.startsWith('/api/upload')) return 'file'
-  if (url.startsWith('/api/user')) return 'user'
-  return 'default'
-}
-
-// 获取对应服务的baseURL
-const getBaseURL = (serviceType: string): string => {
-  switch (serviceType) {
-    case 'merchant':
-      return API_CONFIG.MERCHANT
-    case 'file':
-      return API_CONFIG.FILE
-    case 'user':
-      return API_CONFIG.USER
-    default:
-      return API_CONFIG.BASE_URL
-  }
-}
 
 // 创建axios实例
 const request = axios.create({
-  timeout: API_CONFIG.TIMEOUT,
+  // 在开发环境下，通过Vite代理转发请求
+  // 在Docker生产环境下，通过Nginx代理，使用相对路径
+  baseURL: '',
+  timeout: 30000,
   withCredentials: true,
   headers: {
     'Content-Type': 'application/json'
   }
 })
 
+// 无需认证的接口路径
+const noAuthRequired = [
+  '/api/merchant/register',
+  '/api/merchant/send-login-code',
+  '/api/merchant/login',
+  '/api/merchant/login/password',
+  '/api/merchant/send-reset-password-code',
+  '/api/merchant/verify-reset-password-code',
+  '/api/merchant/reset-password'
+];
+
 // 请求拦截器
 request.interceptors.request.use(
   (config) => {
     const authStore = useAuthStore()
     
-    // 根据请求URL确定服务类型和baseURL
-    const serviceType = getServiceType(config.url || '')
-    const baseURL = getBaseURL(serviceType)
-    
-    // 设置baseURL
-    config.baseURL = baseURL
-    
-    // 处理URL路径，避免重复
-    let finalUrl = config.url || ''
-    if (serviceType === 'merchant' && finalUrl.startsWith('/api/merchant')) {
-      // merchant服务保持完整路径，因为后端控制器需要 /api/merchant 前缀
-      finalUrl = finalUrl
-    } else if (serviceType === 'file' && finalUrl.startsWith('/api/upload')) {
-      // 文件服务保持原样，因为baseURL不包含路径
-      finalUrl = finalUrl
-    } else if (serviceType === 'user' && finalUrl.startsWith('/api/user')) {
-      // 用户服务去掉 /api/user 前缀
-      finalUrl = finalUrl.replace('/api/user', '')
-    }
-    
-    // 更新config.url
-    config.url = finalUrl
-    
     // 添加详细的请求日志
     console.log('=== API请求详情 ===')
-    console.log('服务类型:', serviceType)
-    console.log('基础URL:', baseURL)
-    console.log('原始URL:', config.url)
-    console.log('处理后URL:', finalUrl)
-    console.log('完整URL:', `${baseURL}${finalUrl}`)
+    console.log('请求URL:', config.url)
+    console.log('Base URL:', config.baseURL)
+    console.log('完整URL:', config.baseURL ? `${config.baseURL}${config.url}` : config.url)
     console.log('请求方法:', config.method)
     console.log('请求参数:', config.params)
     console.log('请求数据:', config.data)
-    console.log('请求头:', config.headers)
+    console.log('环境信息:', {
+      isDev: import.meta.env.DEV,
+      mode: import.meta.env.MODE,
+      baseUrl: import.meta.env.BASE_URL
+    })
     
-    // 如果有token，添加到请求头
-    if (authStore.accessToken) {
+    // 判断是否需要添加认证令牌
+    const isNoAuthPath = noAuthRequired.some(path => config.url?.includes(path));
+    
+    // 只在需要认证的接口上添加令牌
+    if (!isNoAuthPath && authStore.accessToken) {
       config.headers.Authorization = `Bearer ${authStore.accessToken}`
       console.log('已添加认证token')
+    } else if (isNoAuthPath) {
+      console.log('该接口无需认证令牌')
     } else {
       console.log('未找到认证token')
     }

@@ -1,0 +1,31 @@
+# 使用您的华为云JDK17镜像作为基础镜像
+FROM swr.cn-north-4.myhuaweicloud.com/shopping-ecommerce/openjdk:17-jdk
+
+# 设置工作目录
+WORKDIR /app
+
+# 设置时区
+ENV TZ=Asia/Shanghai
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
+
+# 创建应用用户
+RUN groupadd -r appuser && useradd -r -g appuser appuser
+
+# 复制jar文件
+COPY target/*.jar app.jar
+
+# 创建日志目录
+RUN mkdir -p /app/logs && chown -R appuser:appuser /app
+
+# 切换到应用用户
+USER appuser
+
+# 暴露端口
+EXPOSE 8081
+
+# 健康检查
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+  CMD curl -f http://localhost:8081/actuator/health || exit 1
+
+# 启动应用
+ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -Djava.security.egd=file:/dev/./urandom -jar app.jar"] 

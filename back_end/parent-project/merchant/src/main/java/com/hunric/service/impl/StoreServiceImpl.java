@@ -2,6 +2,8 @@ package com.hunric.service.impl;
 
 import com.hunric.common.model.ApiResponse;
 import com.hunric.mapper.StoreMapper;
+import com.hunric.mapper.SpuInfoMapper;
+import com.hunric.mapper.CategoryAttributeMapper;
 import com.hunric.model.Store;
 import com.hunric.model.dto.StoreDTO;
 import com.hunric.service.StoreService;
@@ -23,6 +25,12 @@ public class StoreServiceImpl implements StoreService {
 
     @Autowired
     private StoreMapper storeMapper;
+
+    @Autowired
+    private SpuInfoMapper spuInfoMapper;
+
+    @Autowired
+    private CategoryAttributeMapper categoryAttributeMapper;
 
     /**
      * 根据商家ID获取店铺列表
@@ -213,8 +221,19 @@ public class StoreServiceImpl implements StoreService {
                 return ApiResponse.error("店铺不存在");
             }
 
-            // TODO: 这里可以添加业务规则检查
-            // 例如：检查店铺是否有未完成的订单、是否有商品在售等
+            // 检查店铺是否有商品
+            int productCount = spuInfoMapper.countSpuByStoreId(storeId);
+            if (productCount > 0) {
+                log.warn("尝试删除存在商品的店铺: storeId={}, productCount={}", storeId, productCount);
+                return ApiResponse.error("无法删除店铺，该店铺中还有" + productCount + "个商品，请先删除所有商品");
+            }
+            
+            // 检查是否有关联的分类属性
+            int attributeCount = categoryAttributeMapper.countByStoreId(storeId);
+            if (attributeCount > 0) {
+                log.warn("尝试删除存在分类属性的店铺: storeId={}, attributeCount={}", storeId, attributeCount);
+                return ApiResponse.error("无法删除店铺，该店铺关联了" + attributeCount + "个分类属性，请先删除所有分类属性");
+            }
 
             // 删除店铺
             int result = storeMapper.deleteById(storeId);

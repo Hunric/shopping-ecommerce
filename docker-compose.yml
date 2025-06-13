@@ -1,0 +1,180 @@
+services:
+  # MySQL数据库服务 - 使用华为云镜像源
+  mysql:
+    image: swr.cn-north-4.myhuaweicloud.com/library/mysql:8.0
+    container_name: shopping-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root123456
+      MYSQL_DATABASE: shopping_ecommerce
+      MYSQL_USER: shopping
+      MYSQL_PASSWORD: shopping123
+      TZ: Asia/Shanghai
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./docker/mysql/init:/docker-entrypoint-initdb.d
+      - ./docker/mysql/conf:/etc/mysql/conf.d
+    networks:
+      - shopping-network
+    command: --default-authentication-plugin=mysql_native_password --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "shopping", "-pshopping123"]
+      timeout: 20s
+      retries: 10
+      interval: 30s
+
+  # Redis缓存服务 - 使用华为云镜像源 (Redis 5.0.6)
+  redis:
+    image: swr.cn-north-4.myhuaweicloud.com/library/redis:latest
+    container_name: shopping-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+      - ./docker/redis/redis.conf:/usr/local/etc/redis/redis.conf
+    networks:
+      - shopping-network
+    command: redis-server /usr/local/etc/redis/redis.conf
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # 商户服务 - 使用您的JDK镜像源
+  merchant-service:
+    build:
+      context: ./back_end/parent-project/merchant
+      dockerfile: Dockerfile
+    image: shopping-merchant-service:latest
+    container_name: shopping-merchant-service
+    restart: unless-stopped
+    ports:
+      - "8081:8081"
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+      - JAVA_OPTS=-Dspring.profiles.active=prod -Xms512m -Xmx1024m
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/shopping_ecommerce?useSSL=false&serverTimezone=Asia/Shanghai&characterEncoding=utf8&allowPublicKeyRetrieval=true
+      - SPRING_DATASOURCE_USERNAME=shopping
+      - SPRING_DATASOURCE_PASSWORD=shopping123
+      - SPRING_DATA_REDIS_HOST=redis
+      - SPRING_DATA_REDIS_PORT=6379
+      - MYSQL_HOST=mysql
+      - MYSQL_PORT=3306
+      - MYSQL_DATABASE=shopping_ecommerce
+      - MYSQL_USERNAME=shopping
+      - MYSQL_PASSWORD=shopping123
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - TZ=Asia/Shanghai
+    volumes:
+      - ./logs/merchant-service:/app/logs
+    networks:
+      - shopping-network
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8081/merchant/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  # 文件服务 - 使用您的JDK镜像源
+  file-service:
+    build:
+      context: ./back_end/parent-project/file
+      dockerfile: Dockerfile
+    image: shopping-file-service:latest
+    container_name: shopping-file-service
+    restart: unless-stopped
+    ports:
+      - "8082:8082"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - JAVA_OPTS=-Xms256m -Xmx512m
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/shopping_ecommerce?useSSL=false&serverTimezone=Asia/Shanghai&characterEncoding=utf8
+      - SPRING_DATASOURCE_USERNAME=shopping
+      - SPRING_DATASOURCE_PASSWORD=shopping123
+      - SPRING_REDIS_HOST=redis
+      - SPRING_REDIS_PORT=6379
+      - MYSQL_HOST=mysql
+      - MYSQL_PORT=3306
+      - MYSQL_DATABASE=shopping_ecommerce
+      - MYSQL_USERNAME=shopping
+      - MYSQL_PASSWORD=shopping123
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - TZ=Asia/Shanghai
+    volumes:
+      - ./logs/file-service:/app/logs
+      - ./uploads:/app/uploads
+    networks:
+      - shopping-network
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8082/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+  # 前端服务
+  frontend:
+    build:
+      context: ./front_end/ecommerce-frontend
+      dockerfile: Dockerfile
+    image: shopping-frontend:latest
+    container_name: shopping-frontend
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+      # - "3443:443"  # 临时注释掉，避免端口冲突
+    environment:
+      - NGINX_HOST=localhost
+      - NGINX_PORT=80
+      - BACKEND_HOST=merchant-service
+      - BACKEND_PORT=8081
+      - FILE_SERVICE_HOST=file-service
+      - FILE_SERVICE_PORT=8082
+    volumes:
+      - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./docker/nginx/conf.d:/etc/nginx/conf.d
+      - ./logs/nginx:/var/log/nginx
+    networks:
+      - shopping-network
+    depends_on:
+      merchant-service:
+        condition: service_healthy
+      file-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+# 数据卷
+volumes:
+  mysql_data:
+    driver: local
+  redis_data:
+    driver: local
+
+# 网络配置
+networks:
+  shopping-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16 

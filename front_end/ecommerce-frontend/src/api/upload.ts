@@ -1,3 +1,63 @@
+/**
+ * 电商平台前端文件上传API接口文件
+ * 
+ * @description 提供文件上传相关的API接口，包括图片上传、文件删除等功能。
+ *              支持多种图片格式，包含客户端验证、进度监控、错误处理等特性。
+ * 
+ * @features
+ * - 图片文件上传（JPG、PNG、GIF、WebP）
+ * - 客户端文件类型和大小验证
+ * - 上传进度监控支持
+ * - 文件删除功能
+ * - 详细的错误处理和用户友好的错误信息
+ * - TypeScript类型安全
+ * - 超时控制和重试机制
+ * 
+ * @supported_formats
+ * - image/jpeg: JPEG图片格式
+ * - image/jpg: JPG图片格式
+ * - image/png: PNG图片格式
+ * - image/gif: GIF动图格式
+ * - image/webp: WebP现代图片格式
+ * 
+ * @file_limitations
+ * - 最大文件大小: 5MB
+ * - 支持的文件类型: 图片文件（见上述格式）
+ * - 上传超时时间: 30秒
+ * 
+ * @api_endpoints
+ * - POST /api/upload/image: 上传图片文件
+ * - DELETE /api/upload/delete: 删除已上传的文件
+ * 
+ * @upload_types
+ * - logo: 商家/店铺Logo
+ * - product: 商品图片
+ * - avatar: 用户头像
+ * - general: 通用文件（默认）
+ * 
+ * @interfaces
+ * - UploadResponse: 上传响应数据格式
+ * - ApiResponse<T>: 通用API响应格式
+ * 
+ * @error_handling
+ * - 文件类型验证失败
+ * - 文件大小超限
+ * - 网络请求失败
+ * - 服务器错误响应
+ * - 超时异常处理
+ * 
+ * @dependencies
+ * - axios: HTTP客户端库
+ * - Vite环境变量: VITE_FILE_API_BASE_URL
+ * 
+ * @author 开发团队
+ * @version 1.0.0
+ * @since 2024
+ * 
+ * @see {@link https://axios-http.com/} Axios官方文档
+ * @see {@link ../types/api.ts} API类型定义
+ */
+
 import axios from 'axios'
 
 const API_BASE_URL = import.meta.env.VITE_FILE_API_BASE_URL || 'http://localhost:8082'

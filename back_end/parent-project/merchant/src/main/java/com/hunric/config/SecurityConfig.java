@@ -54,12 +54,18 @@ public class SecurityConfig {
             .authorizeHttpRequests(authz -> authz
                 // 允许访问的公开接口
                 .requestMatchers(
-                    "/api/merchant/register",           // 商家注册
-                    "/api/merchant/send-login-code",    // 发送登录验证码
-                    "/api/merchant/login",              // 验证码登录
-                    "/api/test/**",                     // 测试接口
-                    "/actuator/**",                     // 健康检查等
-                    "/error"                            // 错误页面
+                    "/api/merchant/register",                   // 商家注册
+                    "/api/merchant/send-login-code",            // 发送登录验证码
+                    "/api/merchant/login",                      // 验证码登录
+                    "/api/merchant/login/password",             // 密码登录
+                    "/api/merchant/send-reset-password-code",   // 发送重置密码验证码
+                    "/api/merchant/verify-reset-password-code", // 验证重置密码验证码
+                    "/api/merchant/reset-password",             // 重置密码
+                    "/api/verification/**",                     // 验证码相关接口
+                    "/api/test/**",                             // 测试接口
+                    "/api/merchant/spu/template/download",      // 下载商品Excel模板
+                    "/actuator/**",                             // 监控
+                    "/error"                                    // 错误页面
                 ).permitAll()
                 
                 // 其他所有请求都需要认证
@@ -79,8 +85,16 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
         
-        // 允许的源 - 明确指定前端地址
-        configuration.setAllowedOrigins(Collections.singletonList("http://localhost:3000"));
+        // 允许的源 - 支持开发环境和Docker环境
+        configuration.setAllowedOriginPatterns(Arrays.asList(
+            "http://localhost:3000",           // 开发环境前端
+            "http://localhost",                // Docker环境Nginx
+            "http://127.0.0.1:3000",          // 本地IP
+            "http://127.0.0.1",               // 本地IP Nginx
+            "http://frontend",                 // Docker容器名
+            "http://shopping-frontend",        // Docker容器名
+            "*"                                // 允许所有源（生产环境可以限制）
+        ));
         
         // 允许的HTTP方法
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD", "PATCH"));
@@ -93,7 +107,9 @@ public class SecurityConfig {
             "Origin",
             "Access-Control-Request-Method",
             "Access-Control-Request-Headers",
-            "Authorization"
+            "Authorization",
+            "Cache-Control",
+            "Pragma"
         ));
         
         // 允许发送凭证
@@ -103,7 +119,8 @@ public class SecurityConfig {
         configuration.setExposedHeaders(Arrays.asList(
             "Access-Control-Allow-Origin",
             "Access-Control-Allow-Credentials",
-            "Authorization"
+            "Authorization",
+            "Content-Disposition"
         ));
         
         // 预检请求的缓存时间

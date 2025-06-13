@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300">
+  <!-- 平板电脑主体 -->
+  <rect x="100" y="70" width="200" height="150" rx="10" fill="#34495e" />
+  <rect x="110" y="80" width="180" height="130" rx="5" fill="#3498db" />
+  
+  <!-- 平板支架 -->
+  <rect x="190" y="220" width="20" height="30" rx="2" fill="#7f8c8d" />
+  <rect x="150" y="250" width="100" height="5" rx="2" fill="#7f8c8d" />
+  
+  <!-- 屏幕内容 - 应用图标 -->
+  <rect x="130" y="100" width="25" height="25" rx="5" fill="#e74c3c" />
+  <rect x="165" y="100" width="25" height="25" rx="5" fill="#f1c40f" />
+  <rect x="200" y="100" width="25" height="25" rx="5" fill="#2ecc71" />
+  <rect x="235" y="100" width="25" height="25" rx="5" fill="#9b59b6" />
+  
+  <rect x="130" y="135" width="25" height="25" rx="5" fill="#1abc9c" />
+  <rect x="165" y="135" width="25" height="25" rx="5" fill="#d35400" />
+  <rect x="200" y="135" width="25" height="25" rx="5" fill="#8e44ad" />
+  <rect x="235" y="135" width="25" height="25" rx="5" fill="#2980b9" />
+  
+  <rect x="130" y="170" width="25" height="25" rx="5" fill="#27ae60" />
+  <rect x="165" y="170" width="25" height="25" rx="5" fill="#c0392b" />
+  <rect x="200" y="170" width="25" height="25" rx="5" fill="#16a085" />
+  <rect x="235" y="170" width="25" height="25" rx="5" fill="#2c3e50" />
+  
+  <!-- 摄像头 -->
+  <circle cx="200" cy="75" r="3" fill="#ecf0f1" />
+  
+  <!-- 产品信息 -->
+  <text x="200" y="280" font-family="Arial" font-size="14" fill="black" text-anchor="middle">二合一平板电脑 5</text>
+</svg> 

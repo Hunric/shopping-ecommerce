@@ -111,6 +111,7 @@ import {
   type StoreExtendedCreateData,
   type StoreExtendedUpdateData
 } from '@/api/merchant/storeExtended'
+import type { StoreCreateData, StoreUpdateData } from '@/api/merchant/store'
 
 const authStore = useAuthStore()
 
@@ -177,9 +178,9 @@ const handleFormCancel = () => {
   selectedStore.value = null
 }
 
-const handleCreateSuccess = async (storeData: StoreExtendedCreateData) => {
+const handleCreateSuccess = async (storeData: StoreCreateData | StoreUpdateData | StoreExtendedCreateData | StoreExtendedUpdateData) => {
   try {
-    const response = await createStoreExtended(storeData)
+    const response = await createStoreExtended(storeData as StoreExtendedCreateData)
     addApiLog('POST', '/api/merchant/store-extended', response.success, { request: storeData, response })
     
     if (response.success && response.data) {
@@ -195,9 +196,14 @@ const handleCreateSuccess = async (storeData: StoreExtendedCreateData) => {
   }
 }
 
-const handleUpdateSuccess = async (storeData: StoreExtendedUpdateData, storeId: number) => {
+const handleUpdateSuccess = async (storeData: StoreCreateData | StoreUpdateData | StoreExtendedCreateData | StoreExtendedUpdateData, storeId?: number) => {
+  if (!storeId) {
+    ElMessage.error('店铺ID缺失')
+    return
+  }
+  
   try {
-    const response = await updateStoreExtended(storeId, storeData)
+    const response = await updateStoreExtended(storeId, storeData as StoreExtendedUpdateData)
     addApiLog('PUT', `/api/merchant/store-extended/${storeId}`, response.success, { request: storeData, response })
     
     if (response.success && response.data) {

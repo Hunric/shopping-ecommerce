@@ -1,6 +1,5 @@
 ---
 description: 
 globs: 
-alwaysApply: false
+alwaysApply: true
 ---
-my computer system is windows.

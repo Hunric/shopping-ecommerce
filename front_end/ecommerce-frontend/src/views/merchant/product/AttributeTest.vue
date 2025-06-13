@@ -130,7 +130,7 @@ const testForm = reactive({
 })
 
 // 分类选项
-const categoryOptions = ref([])
+const categoryOptions = ref<any[]>([])
 
 // 属性列表
 const attributes = ref<CategoryAttribute[]>([])

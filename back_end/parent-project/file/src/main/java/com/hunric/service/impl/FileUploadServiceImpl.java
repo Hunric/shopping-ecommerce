@@ -19,7 +19,72 @@ import java.util.Map;
 import java.util.UUID;
 
 /**
- * 文件上传服务实现类
+ * 电商平台文件上传服务实现类
+ * 
+ * @description 文件上传服务的具体实现，负责处理文件的存储、管理和删除操作。
+ *              采用本地文件系统存储，支持按类型和日期分类组织文件结构。
+ * 
+ * @features
+ * - 本地文件系统存储
+ * - 按类型和日期自动分类存储
+ * - UUID文件名生成防止冲突
+ * - 文件访问URL自动生成
+ * - 文件删除和清理功能
+ * - 详细的操作日志记录
+ * - 异常处理和错误恢复
+ * 
+ * @storage_structure
+ * 文件存储目录结构：
+ * <pre>
+ * /uploads/
+ * ├── logo/
+ * │   └── 2024/01/15/
+ * │       └── uuid-filename.jpg
+ * ├── product/
+ * │   └── 2024/01/15/
+ * │       └── uuid-filename.png
+ * └── avatar/
+ *     └── 2024/01/15/
+ *         └── uuid-filename.gif
+ * </pre>
+ * 
+ * @configuration
+ * - file.upload.path: 文件上传根目录（默认：/uploads）
+ * - file.access.base-url: 文件访问基础URL（默认：http://localhost:8080）
+ * 
+ * @file_naming
+ * - 使用UUID生成唯一文件名
+ * - 保留原始文件扩展名
+ * - 格式：{UUID}.{extension}
+ * 
+ * @url_generation
+ * 生成的文件访问URL格式：
+ * {baseUrl}/uploads/{type}/{yyyy/MM/dd}/{filename}
+ * 
+ * @error_handling
+ * - IOException: 文件I/O操作异常
+ * - SecurityException: 文件权限异常
+ * - IllegalArgumentException: 参数验证异常
+ * - 其他运行时异常的统一处理
+ * 
+ * @thread_safety
+ * 该服务是线程安全的，支持并发文件上传操作。
+ * 使用UUID确保文件名唯一性，避免并发冲突。
+ * 
+ * @dependencies
+ * - FileUploadService: 文件上传服务接口
+ * - ApiResponse: 统一响应格式
+ * - Spring Framework: 依赖注入和配置管理
+ * - Java NIO: 文件操作API
+ * - Lombok: 日志注解支持
+ * 
+ * @author 开发团队
+ * @version 1.0.0
+ * @since 2024
+ * 
+ * @see {@link com.hunric.service.FileUploadService} 文件上传服务接口
+ * @see {@link java.nio.file.Files} Java NIO文件操作API
+ * @see {@link java.util.UUID} UUID生成器
  */
 @Slf4j
 @Service
@@ -120,6 +185,9 @@ public class FileUploadServiceImpl implements FileUploadService {
 
     /**
      * 从URL中提取文件路径
+     * 
+     * @param url 完整的文件访问URL
+     * @return 相对于上传根目录的文件路径，失败时返回null
      */
     private String extractFilePathFromUrl(String url) {
         try {

@@ -52,6 +52,12 @@ public interface SpuInfoMapper {
     SpuInfo selectSpuById(Integer spuId);
 
     /**
+     * 计算店铺中的商品数量
+     */
+    @Select("SELECT COUNT(*) FROM spu_info WHERE store_id = #{storeId}")
+    int countSpuByStoreId(@Param("storeId") Integer storeId);
+
+    /**
      * 更新SPU信息
      */
     @Update("UPDATE spu_info SET product_name = #{spuName}, description = #{spuDescription}, " +
@@ -154,7 +160,8 @@ public interface SpuInfoMapper {
      * 批量更新SPU状态
      */
     @Update("<script>" +
-            "UPDATE spu_info SET status = #{status}, update_time = NOW() WHERE product_id IN " +
+            "UPDATE spu_info SET status = #{status}, update_time = NOW() " +
+            "WHERE product_id IN " +
             "<foreach collection='spuIds' item='spuId' open='(' separator=',' close=')'>" +
             "#{spuId}" +
             "</foreach>" +
@@ -162,11 +169,18 @@ public interface SpuInfoMapper {
     int batchUpdateSpuStatus(@Param("spuIds") List<Integer> spuIds, @Param("status") String status);
 
     /**
-     * 检查SPU名称是否存在
+     * 检查SPU名称是否已存在
      */
     @Select("<script>" +
-            "SELECT COUNT(*) FROM spu_info WHERE store_id = #{storeId} AND product_name = #{spuName} " +
+            "SELECT COUNT(*) FROM spu_info " +
+            "WHERE store_id = #{storeId} AND product_name = #{spuName} " +
             "<if test='spuId != null'>AND product_id != #{spuId}</if>" +
             "</script>")
     int checkSpuNameExists(@Param("storeId") Integer storeId, @Param("spuName") String spuName, @Param("spuId") Integer spuId);
+
+    /**
+     * 根据店铺ID获取商家ID
+     */
+    @Select("SELECT merchant_id FROM store_info WHERE store_id = #{storeId}")
+    Integer getStoreMerchantId(@Param("storeId") Integer storeId);
 } 

@@ -8,7 +8,7 @@ spring:
   application:
     name: merchant-service
   
-  # 启用生产环境配置以使用真实邮件服务
+  # 启用生产环境配置以使用真实邮件发送
   profiles:
     active: prod
     
@@ -77,4 +77,4 @@ logging:
     com.hunric: DEBUG
     org.springframework.security: DEBUG
   pattern:
-    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n" 
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"

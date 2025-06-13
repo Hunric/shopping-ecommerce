@@ -3,6 +3,7 @@ package com.hunric.mapper;
 import com.hunric.model.Merchant;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
+import org.apache.ibatis.annotations.Update;
 import java.util.List;
 
 /**
@@ -66,4 +67,12 @@ public interface MerchantMapper {
      * @return 商家列表
      */
     List<Merchant> selectList(Merchant merchant);
+    
+    /**
+     * 更新商家密码
+     * @param merchant 商家对象
+     * @return 影响行数
+     */
+    @Update("UPDATE merchant_info SET password = #{password} WHERE merchant_id = #{merchantId}")
+    int updatePassword(Merchant merchant);
 } 

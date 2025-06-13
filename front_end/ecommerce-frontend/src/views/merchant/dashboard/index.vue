@@ -7,7 +7,6 @@
       </div>
       <div class="header-right">
         <div class="user-info">
-          <el-avatar :size="32" src="/images/default-avatar.png" />
           <span>{{ merchantInfo?.merchantName }}</span>
           <el-dropdown @command="handleCommand">
             <el-button link class="dropdown-btn">
@@ -232,6 +231,14 @@
                       <el-icon><Switch /></el-icon>
                       {{ store.status === 'open' ? '暂停营业' : '恢复营业' }}
                     </el-button>
+                    <el-button
+                      size="small"
+                      type="danger"
+                      @click="handleDeleteStore(store)"
+                    >
+                      <el-icon><Delete /></el-icon>
+                      删除店铺
+                    </el-button>
                   </div>
                 </div>
               </div>
@@ -396,25 +403,10 @@
       width="800px"
       @close="merchantInfoDialogVisible = false"
     >
-      <div class="merchant-info-content">
-        <div class="placeholder">
-          <h3>商家信息管理</h3>
-          <p>商家信息：{{ merchantInfo?.merchantName }}</p>
-          <p>邮箱：{{ merchantInfo?.email }}</p>
-          <p>商家信息管理功能包含：</p>
-          <ul style="text-align: left; max-width: 400px; margin: 0 auto;">
-            <li>基本信息编辑</li>
-            <li>联系方式管理</li>
-            <li>营业执照信息</li>
-            <li>结算信息设置</li>
-            <li>密码修改</li>
-          </ul>
-        </div>
-      </div>
+      <MerchantProfile />
       
       <template #footer>
         <el-button @click="merchantInfoDialogVisible = false">关闭</el-button>
-        <el-button type="primary">保存修改</el-button>
       </template>
     </el-dialog>
   </div>
@@ -432,7 +424,7 @@ import {
 import {
   ArrowDown, DataBoard, User, Shop, Goods, Document, 
   TrendCharts, Fold, Expand, Plus, ArrowLeft, Money,
-  Search, Refresh, Edit, Switch, Clock, Van, Check, Menu
+  Search, Refresh, Edit, Switch, Clock, Van, Check, Menu, Delete
 } from '@element-plus/icons-vue'
 
 // 导入API服务
@@ -455,6 +447,7 @@ import OrderList from '@/components/merchant/OrderList.vue'
 import StoreForm from '@/components/merchant/StoreForm.vue'
 import CategoryManagement from '@/components/merchant/CategoryManagement.vue'
 import AttributeManagement from '@/components/merchant/AttributeManagement.vue'
+import MerchantProfile from '@/components/merchant/MerchantProfile.vue'
 
 // 店铺类型已从API模块导入
 
@@ -656,6 +649,46 @@ const handleEditStore = (store: StoreExtended) => {
 const handleManageProducts = (store: StoreExtended) => {
   currentStore.value = store
   currentView.value = 'products'
+}
+
+const handleDeleteStore = async (store: StoreExtended) => {
+  try {
+    await ElMessageBox.confirm(
+      `确定要删除店铺"${store.storeName}"吗？删除后无法恢复。\n注意：只有当店铺中没有商品时才能删除。`,
+      '确认删除',
+      {
+        confirmButtonText: '删除',
+        cancelButtonText: '取消',
+        type: 'warning',
+        confirmButtonClass: 'el-button--danger'
+      }
+    )
+    
+    // 调用API删除店铺
+    const deleteApi = useExtendedApi.value
+      ? deleteStoreExtended
+      : deleteStore
+      
+    const response = await deleteApi(store.storeId)
+      
+    if (response.success) {
+      // 从列表中移除被删除的店铺
+      stores.value = stores.value.filter(s => s.storeId !== store.storeId)
+      ElMessage.success('店铺删除成功')
+      
+      // 更新统计数据
+      if (storeCount.value > 0) {
+        storeCount.value -= 1
+      }
+    } else {
+      ElMessage.error(response.message || '删除店铺失败')
+    }
+  } catch (error) {
+    if (error !== 'cancel') {
+      console.error('删除店铺失败:', error)
+      ElMessage.error('删除店铺失败，请稍后重试')
+    }
+  }
 }
 
 const toggleStoreStatus = async (store: StoreExtended) => {
@@ -876,13 +909,31 @@ const handleStoreSuccess = async (storeData: StoreCreateData | StoreUpdateData |
 
 // 组件挂载时检查登录状态
 onMounted(async () => {
+  console.log('Dashboard页面开始加载')
+  
+  // 初始化认证状态
   authStore.initializeAuth()
   
-  if (!authStore.isLoggedIn || authStore.isTokenExpired()) {
+  // 详细的认证状态检查
+  console.log('认证状态检查:')
+  console.log('isLoggedIn:', authStore.isLoggedIn)
+  console.log('merchantInfo:', authStore.merchantInfo)
+  console.log('accessToken存在:', !!authStore.accessToken)
+  console.log('localStorage token:', localStorage.getItem('merchant_access_token'))
+  console.log('localStorage merchant_info:', localStorage.getItem('merchant_info'))
+  
+  // 检查token是否过期
+  const tokenExpired = authStore.isTokenExpired()
+  console.log('token是否过期:', tokenExpired)
+  
+  if (!authStore.isLoggedIn || tokenExpired) {
+    console.log('认证失败，跳转到登录页')
     ElMessage.warning('请先登录')
     router.push('/merchant/login')
     return
   }
+  
+  console.log('认证通过，开始加载数据')
   
   // 加载Dashboard数据
   await loadDashboardStats()
@@ -931,7 +982,7 @@ onMounted(async () => {
 .user-info {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
 }
 
 .user-info span {
@@ -1339,4 +1390,4 @@ onMounted(async () => {
     grid-template-columns: 1fr;
   }
 }
-</style> 
+</style>

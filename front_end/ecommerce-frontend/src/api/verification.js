@@ -1,8 +1,5 @@
 import axios from 'axios';
 
-// API基础URL
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8081/merchant';
-
 // 验证码API
 export const verificationApi = {
   /**
@@ -12,8 +9,8 @@ export const verificationApi = {
    * @returns {Promise} - 返回Promise对象
    */
   sendVerificationCode: (email, purpose) => {
-    // 尝试使用GET请求和URL参数
-    return axios.get(`${API_BASE_URL}/api/verification/send`, {
+    // 使用代理路径，不再直连后端
+    return axios.get(`/api/verification/send`, {
       params: {
         email,
         purpose
@@ -29,8 +26,8 @@ export const verificationApi = {
    * @returns {Promise} - 返回Promise对象
    */
   verifyCode: (email, code, purpose) => {
-    // 尝试使用GET请求和URL参数
-    return axios.get(`${API_BASE_URL}/api/verification/verify`, {
+    // 使用代理路径，不再直连后端
+    return axios.get(`/api/verification/verify`, {
       params: {
         email,
         code,

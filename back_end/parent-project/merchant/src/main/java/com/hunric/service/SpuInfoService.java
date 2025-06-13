@@ -18,6 +18,11 @@ public interface SpuInfoService {
     SpuInfo createSpu(SpuCreateDTO spuCreateDTO);
 
     /**
+     * 批量创建SPU
+     */
+    List<SpuInfo> batchCreateSpu(List<SpuCreateDTO> spuCreateDTOList);
+
+    /**
      * 根据ID获取SPU信息
      */
     SpuInfo getSpuById(Integer spuId);
@@ -78,4 +83,9 @@ public interface SpuInfoService {
      * 生成SKU组合
      */
     List<Map<String, Object>> generateSkuCombinations(Map<String, Object> basicAttributes);
+
+    /**
+     * 根据店铺ID获取商家ID
+     */
+    Integer getStoreMerchantId(Integer storeId);
 } 

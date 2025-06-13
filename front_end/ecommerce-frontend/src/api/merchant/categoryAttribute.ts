@@ -15,13 +15,17 @@ export interface CategoryAttribute {
 
 // 创建属性请求
 export interface CreateAttributeRequest {
-  storeId: number
-  categoryId: number
   attributeName: string
   attributeType: CategoryAttribute['attributeType']
   isBasicAttribute: boolean
   isRequired: boolean
   options?: string[]
+}
+
+// 单个属性创建请求（包含storeId和categoryId）
+export interface CreateSingleAttributeRequest extends CreateAttributeRequest {
+  storeId: number
+  categoryId: number
 }
 
 // 更新属性请求
@@ -59,7 +63,7 @@ export const getAttributeById = async (attributeId: number): Promise<ApiResponse
 /**
  * 创建分类属性
  */
-export const createAttribute = async (data: CreateAttributeRequest): Promise<ApiResponse<CategoryAttribute>> => {
+export const createAttribute = async (data: CreateSingleAttributeRequest): Promise<ApiResponse<CategoryAttribute>> => {
   const response = await request.post('/api/merchant/category/attribute', data)
   return response.data
 }
