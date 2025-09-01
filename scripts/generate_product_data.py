@@ -26,8 +26,13 @@ project_dir = os.path.dirname(script_dir)
 template_path = os.path.join(project_dir, 'product_template.xlsx')
 output_path = os.path.join(project_dir, 'product_data.xlsx')
 
-# FakeStoreAPI 端点
-FAKE_STORE_API_URL = "https://fakestoreapi.com/products"
+# DummyJSON API 端点
+DUMMY_JSON_API_URL = "https://dummyjson.com/products"
+DUMMY_JSON_CATEGORY_URL = "https://dummyjson.com/products/category"
+
+# 手机和电脑相关的分类
+PHONE_CATEGORIES = ["smartphones"]
+LAPTOP_CATEGORIES = ["laptops"]
 
 # 数据库字段长度限制（根据数据库表结构定义）
 MAX_PRODUCT_NAME_LENGTH = 20   # spu_info.product_name VARCHAR(20)
@@ -43,18 +48,41 @@ def truncate_text(text, max_length):
         return text[:max_length-3] + "..."
     return text
 
-def get_fake_store_data():
-    """从FakeStoreAPI获取商品数据"""
+def get_dummy_json_data_by_category(category):
+    """从DummyJSON API根据分类获取商品数据"""
     try:
-        response = requests.get(FAKE_STORE_API_URL)
+        url = f"{DUMMY_JSON_CATEGORY_URL}/{category}"
+        response = requests.get(url)
         if response.status_code == 200:
-            return response.json()
+            data = response.json()
+            # DummyJSON返回的数据结构是 {"products": [...], "total": X, "skip": 0, "limit": 30}
+            return data.get('products', [])
         else:
-            print(f"获取数据失败，状态码: {response.status_code}")
-            return None
+            print(f"获取{category}分类数据失败，状态码: {response.status_code}")
+            return []
     except Exception as e:
-        print(f"请求API时出错: {e}")
-        return None
+        print(f"请求{category}分类API时出错: {e}")
+        return []
+
+def get_dummy_json_phones_and_laptops():
+    """专门获取手机和电脑商品数据"""
+    all_products = []
+    
+    # 获取手机数据
+    print("正在获取手机商品数据...")
+    for category in PHONE_CATEGORIES:
+        products = get_dummy_json_data_by_category(category)
+        print(f"从{category}分类获取了 {len(products)} 个商品")
+        all_products.extend(products)
+    
+    # 获取电脑数据
+    print("正在获取电脑商品数据...")
+    for category in LAPTOP_CATEGORIES:
+        products = get_dummy_json_data_by_category(category)
+        print(f"从{category}分类获取了 {len(products)} 个商品")
+        all_products.extend(products)
+    
+    return all_products
 
 def generate_phone_data(count=10):
     """生成手机类商品数据"""
@@ -196,91 +224,116 @@ def generate_computer_data(count=10):
     return computer_data
 
 def process_api_data(api_data):
-    """处理API数据，将其转换为适合我们模板的格式"""
+    """处理DummyJSON API数据，将其转换为适合我们模板的格式"""
     processed_data = []
     
     if api_data:
         for item in api_data:
-            # 只处理电子产品
-            if 'electronics' in str(item.get('category', '')).lower():
-                # 随机分配为手机或电脑类别
-                category_id = random.choice([2, 3])
-                category_name = "手机" if category_id == 2 else "电脑"
+            # DummyJSON分类映射
+            category = item.get('category', '').lower()
+            
+            # 精确映射分类
+            if category in ['smartphones']:
+                category_id = 2  # 手机
                 unit = "台"
+            elif category in ['laptops']:
+                category_id = 3  # 电脑
+                unit = "台"
+            else:
+                # 如果不是预期的分类，跳过
+                continue
+            
+            # 提取品牌名
+            brand = item.get("brand", "")
+            if not brand and item.get("title"):
+                # 如果没有品牌，从标题提取第一个词作为品牌
+                brand = item.get("title", "").split()[0]
+            brand = truncate_text(brand, MAX_BRAND_NAME_LENGTH)
+            
+            # 确保产品名称不超过长度限制
+            product_name = truncate_text(item.get("title", ""), MAX_PRODUCT_NAME_LENGTH)
+            
+            # 生成几个SKU变种
+            skus = []
+            base_price = float(item.get("price", 0)) * 7.2  # 美元转人民币汇率
+            
+            if category_id == 2:  # 手机
+                colors = ["黑色", "白色", "蓝色", "金色"]
+                storages = ["128GB", "256GB", "512GB"]
                 
-                # 提取品牌名（假设为标题的第一个词）
-                brand = item.get("title", "").split()[0] if item.get("title") else ""
-                brand = truncate_text(brand, MAX_BRAND_NAME_LENGTH)
+                for color in colors[:2]:  # 取前两种颜色
+                    for storage in storages[:2]:  # 取前两种存储
+                        sku_price = base_price
+                        if storage == "256GB":
+                            sku_price += 500
+                        elif storage == "512GB":
+                            sku_price += 1000
+                        
+                        # 确保SKU名称不超过长度限制
+                        sku_name = truncate_text(f"{product_name}-{color}-{storage}", MAX_SKU_NAME_LENGTH)
+                        
+                        sku = {
+                            "sku_name": sku_name,
+                            "sku_price": sku_price,
+                            "sku_stock": random.randint(10, 100),
+                            "min_stock": random.randint(5, 20),
+                            "attributes": json.dumps({
+                                "颜色": color,
+                                "存储容量": storage
+                            }, ensure_ascii=False)
+                        }
+                        skus.append(sku)
+            else:  # 电脑
+                cpus = ["Intel i5", "Intel i7", "AMD Ryzen 5", "AMD Ryzen 7"]
+                memories = ["8GB", "16GB", "32GB"]
                 
-                # 确保产品名称不超过长度限制
-                product_name = truncate_text(item.get("title", ""), MAX_PRODUCT_NAME_LENGTH)
-                
-                # 生成几个SKU变种
-                skus = []
-                base_price = float(item.get("price", 0)) * 6.5  # 假设美元转人民币
-                
-                if category_id == 2:  # 手机
-                    colors = ["黑色", "白色", "蓝色"]
-                    storages = ["64GB", "128GB"]
-                    
-                    for color in colors[:2]:
-                        for storage in storages:
-                            sku_price = base_price
-                            if storage == "128GB":
-                                sku_price += 300
-                            
-                            # 确保SKU名称不超过长度限制，使用更简洁的命名
-                            sku_name = truncate_text(f"{product_name}-{color}-{storage}", MAX_SKU_NAME_LENGTH)
-                            
-                            sku = {
-                                "sku_name": sku_name,
-                                "sku_price": sku_price,
-                                "sku_stock": random.randint(10, 100),
-                                "min_stock": random.randint(5, 20),
-                                "attributes": json.dumps({
-                                    "颜色": color,
-                                    "存储容量": storage
-                                }, ensure_ascii=False)
-                            }
-                            skus.append(sku)
-                else:  # 电脑
-                    cpus = ["Intel i5", "AMD Ryzen 5"]
-                    memories = ["8GB", "16GB"]
-                    
-                    for cpu in cpus:
-                        for memory in memories:
-                            sku_price = base_price
-                            if memory == "16GB":
-                                sku_price += 400
-                            
-                            # 确保SKU名称不超过长度限制，使用更简洁的命名
-                            sku_name = truncate_text(f"{product_name}-{cpu}-{memory}", MAX_SKU_NAME_LENGTH)
-                            
-                            sku = {
-                                "sku_name": sku_name,
-                                "sku_price": sku_price,
-                                "sku_stock": random.randint(5, 50),
-                                "min_stock": random.randint(2, 10),
-                                "attributes": json.dumps({
-                                    "处理器": cpu,
-                                    "内存": memory
-                                }, ensure_ascii=False)
-                            }
-                            skus.append(sku)
-                
-                product = {
-                    "id": item.get("id", 0),
-                    "name": product_name,
-                    "description": truncate_text(item.get("description", ""), MAX_DESCRIPTION_LENGTH),
-                    "category_id": category_id,
-                    "price": base_price,
-                    "brand": brand,
-                    "selling_point": truncate_text(f"评分: {item.get('rating', {}).get('rate', 0)}/5，{item.get('rating', {}).get('count', 0)}人评价", MAX_SELLING_POINT_LENGTH),
-                    "unit": unit,
-                    "image": truncate_text(item.get("image", ""), MAX_IMAGE_URL_LENGTH),
-                    "skus": skus
-                }
-                processed_data.append(product)
+                for cpu in cpus[:2]:  # 取前两种CPU
+                    for memory in memories[:2]:  # 取前两种内存
+                        sku_price = base_price
+                        if cpu in ["Intel i7", "AMD Ryzen 7"]:
+                            sku_price += 800
+                        if memory == "16GB":
+                            sku_price += 400
+                        elif memory == "32GB":
+                            sku_price += 800
+                        
+                        # 确保SKU名称不超过长度限制
+                        sku_name = truncate_text(f"{product_name}-{cpu}-{memory}", MAX_SKU_NAME_LENGTH)
+                        
+                        sku = {
+                            "sku_name": sku_name,
+                            "sku_price": sku_price,
+                            "sku_stock": random.randint(5, 50),
+                            "min_stock": random.randint(2, 10),
+                            "attributes": json.dumps({
+                                "处理器": cpu,
+                                "内存": memory
+                            }, ensure_ascii=False)
+                        }
+                        skus.append(sku)
+            
+            # 处理评分信息
+            rating = item.get('rating', 0)
+            selling_point = f"评分: {rating}/5"
+            if item.get('stock'):
+                selling_point += f"，库存充足"
+            
+            # 使用DummyJSON提供的高质量图片
+            image_url = item.get("thumbnail", item.get("images", [""])[0] if item.get("images") else "")
+            
+            product = {
+                "id": item.get("id", 0),
+                "name": product_name,
+                "description": truncate_text(item.get("description", ""), MAX_DESCRIPTION_LENGTH),
+                "category_id": category_id,
+                "price": base_price,
+                "brand": brand,
+                "selling_point": truncate_text(selling_point, MAX_SELLING_POINT_LENGTH),
+                "unit": unit,
+                "image": truncate_text(image_url, MAX_IMAGE_URL_LENGTH),
+                "skus": skus
+            }
+            processed_data.append(product)
     
     return processed_data
 
@@ -356,23 +409,28 @@ def create_excel_from_template(data, template_path, output_path):
         return False
 
 def main():
-    print("开始生成商品数据...")
+    print("开始生成手机和电脑商品数据...")
     
-    # 获取FakeStoreAPI数据
-    api_data = get_fake_store_data()
-    print(f"从FakeStoreAPI获取了 {len(api_data) if api_data else 0} 条数据")
+    # 专门获取手机和电脑数据
+    api_data = get_dummy_json_phones_and_laptops()
+    print(f"从DummyJSON API获取了 {len(api_data) if api_data else 0} 条手机和电脑数据")
     
     # 处理API数据
     processed_api_data = process_api_data(api_data)
-    print(f"处理了 {len(processed_api_data)} 条API数据")
+    print(f"处理了 {len(processed_api_data)} 条有效的手机和电脑数据")
     
-    # 生成额外的手机和电脑数据
-    phone_data = generate_phone_data(5)
-    computer_data = generate_computer_data(5)
-    print(f"生成了 {len(phone_data)} 条手机数据和 {len(computer_data)} 条电脑数据")
+    # 生成少量额外的手机和电脑数据作为补充
+    phone_data = generate_phone_data(2)
+    computer_data = generate_computer_data(2)
+    print(f"额外生成了 {len(phone_data)} 条手机数据和 {len(computer_data)} 条电脑数据")
     
     # 合并所有数据
     all_products = processed_api_data + phone_data + computer_data
+    
+    # 统计分类数量
+    phone_count = sum(1 for p in all_products if p.get('category_id') == 2)
+    computer_count = sum(1 for p in all_products if p.get('category_id') == 3)
+    print(f"总计: {phone_count} 个手机商品, {computer_count} 个电脑商品")
     
     # 将产品数据转换为Excel数据格式
     excel_data = generate_excel_data(all_products)
@@ -382,7 +440,13 @@ def main():
     success = create_excel_from_template(excel_data, template_path, output_path)
     
     if success:
-        print("数据生成并填充成功!")
+        print("手机和电脑商品数据生成成功!")
+        print(f"Excel文件已保存到: {output_path}")
+        print("文件包含:")
+        print(f"- {phone_count} 个手机商品 (分类ID: 2)")
+        print(f"- {computer_count} 个电脑商品 (分类ID: 3)")
+        print("- 所有商品都有高质量的图片和真实的商品信息")
+        print("现在可以使用这个文件导入到数据库中")
     else:
         print("数据生成或填充过程中出现错误")
 

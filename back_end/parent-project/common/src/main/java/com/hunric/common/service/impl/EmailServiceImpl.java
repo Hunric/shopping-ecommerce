@@ -4,6 +4,7 @@ import com.hunric.common.model.VerificationCode;
 import com.hunric.common.service.EmailService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Profile;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.mail.SimpleMailMessage;
@@ -22,7 +23,8 @@ import java.util.concurrent.TimeUnit;
  * 邮件服务实现类 - 用于生产环境
  */
 @Service
-@Profile("prod")  // 只在生产环境使用
+@Profile({"prod", "dev", "default"})  // 在生产环境、开发环境和默认环境使用
+@ConditionalOnProperty(name = "spring.mail.host")
 public class EmailServiceImpl implements EmailService {
 
     private final JavaMailSender mailSender;
@@ -137,6 +139,13 @@ public class EmailServiceImpl implements EmailService {
             String storedCode = codeMap.get("code");
             boolean isValid = storedCode != null && storedCode.equals(code);
             System.out.println("验证码匹配结果: " + isValid + " for " + redisKey);
+            
+            // 如果验证成功，标记为已使用
+            if (isValid) {
+                markCodeAsUsed(email, purpose);
+                System.out.println("验证码验证成功，已标记为已使用: " + redisKey);
+            }
+            
             return isValid;
         } catch (Exception e) {
             System.err.println("验证验证码时出错: " + e.getMessage());

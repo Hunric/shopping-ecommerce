@@ -1,0 +1,164 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hunric.mapper.OrderInfoMapper">
+    <!-- 结果映射 -->
+    <resultMap id="BaseResultMap" type="com.hunric.model.OrderInfo">
+        <id column="order_id" property="orderId" />
+        <result column="order_no" property="orderNo" />
+        <result column="user_id" property="userId" />
+        <result column="store_id" property="storeId" />
+        <result column="shipping_id" property="shippingId" />
+        <result column="total_amount" property="totalAmount" />
+        <result column="actual_amount" property="actualAmount" />
+        <result column="discount_amount" property="discountAmount" />
+        <result column="shipping_fee" property="shippingFee" />
+        <result column="order_status" property="orderStatus" />
+        <result column="payment_method" property="paymentMethod" />
+        <result column="order_note" property="orderNote" />
+        <result column="order_items" property="orderItems" />
+        <result column="create_time" property="createTime" />
+        <result column="pay_time" property="payTime" />
+        <result column="ship_time" property="shipTime" />
+        <result column="complete_time" property="completeTime" />
+        <result column="cancel_time" property="cancelTime" />
+        <result column="update_time" property="updateTime" />
+    </resultMap>
+    
+    <!-- 基础列 -->
+    <sql id="Base_Column_List">
+        order_id, order_no, user_id, store_id, shipping_id, total_amount, actual_amount, 
+        discount_amount, shipping_fee, order_status, payment_method, order_note, order_items, 
+        create_time, pay_time, ship_time, complete_time, cancel_time, update_time
+    </sql>
+    
+    <!-- 根据ID查询订单信息 -->
+    <select id="findById" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List" />
+        FROM order_info
+        WHERE order_id = #{id}
+    </select>
+    
+    <!-- 根据条件查询订单列表（分页） -->
+    <select id="findByCondition" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List" />
+        FROM order_info
+        <where>
+            <if test="condition.storeId != null">
+                AND store_id = #{condition.storeId}
+            </if>
+            <if test="condition.orderNo != null and condition.orderNo != ''">
+                AND order_no = #{condition.orderNo}
+            </if>
+            <if test="condition.orderStatus != null and condition.orderStatus != ''">
+                AND order_status = #{condition.orderStatus}
+            </if>
+        </where>
+        ORDER BY create_time DESC
+        LIMIT #{offset}, #{limit}
+    </select>
+    
+    <!-- 根据条件查询订单数量 -->
+    <select id="countByCondition" resultType="java.lang.Long">
+        SELECT COUNT(*)
+        FROM order_info
+        <where>
+            <if test="condition.storeId != null">
+                AND store_id = #{condition.storeId}
+            </if>
+            <if test="condition.orderNo != null and condition.orderNo != ''">
+                AND order_no = #{condition.orderNo}
+            </if>
+            <if test="condition.orderStatus != null and condition.orderStatus != ''">
+                AND order_status = #{condition.orderStatus}
+            </if>
+        </where>
+    </select>
+    
+    <!-- 根据商家ID和日期范围查询订单列表（分页） -->
+    <select id="findByMerchantIdAndDateRange" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List" />
+        FROM order_info
+        <where>
+            store_id = #{merchantId}
+            <if test="orderNo != null and orderNo != ''">
+                AND order_no = #{orderNo}
+            </if>
+            <if test="orderStatus != null and orderStatus != ''">
+                AND order_status = #{orderStatus}
+            </if>
+            <if test="startTime != null and endTime != null">
+                AND create_time BETWEEN #{startTime} AND #{endTime}
+            </if>
+        </where>
+        ORDER BY create_time DESC
+        LIMIT #{offset}, #{limit}
+    </select>
+    
+    <!-- 根据商家ID和日期范围查询订单数量 -->
+    <select id="countByMerchantIdAndDateRange" resultType="java.lang.Long">
+        SELECT COUNT(*)
+        FROM order_info
+        <where>
+            store_id = #{merchantId}
+            <if test="orderNo != null and orderNo != ''">
+                AND order_no = #{orderNo}
+            </if>
+            <if test="orderStatus != null and orderStatus != ''">
+                AND order_status = #{orderStatus}
+            </if>
+            <if test="startTime != null and endTime != null">
+                AND create_time BETWEEN #{startTime} AND #{endTime}
+            </if>
+        </where>
+    </select>
+    
+    <!-- 根据商家ID查询订单数量 -->
+    <select id="countByMerchantId" resultType="java.lang.Long">
+        SELECT COUNT(*)
+        FROM order_info
+        WHERE store_id = #{merchantId}
+    </select>
+    
+    <!-- 根据商家ID和订单状态查询订单数量 -->
+    <select id="countByMerchantIdAndStatus" resultType="java.lang.Long">
+        SELECT COUNT(*)
+        FROM order_info
+        WHERE store_id = #{merchantId} AND order_status = #{orderStatus}
+    </select>
+    
+    <!-- 根据商家ID和日期范围查询订单实付金额总和 -->
+    <select id="sumActualAmountByMerchantIdAndDateRange" resultType="java.math.BigDecimal">
+        SELECT IFNULL(SUM(actual_amount), 0)
+        FROM order_info
+        WHERE store_id = #{merchantId}
+          AND create_time BETWEEN #{startTime} AND #{endTime}
+          AND order_status != 'cancelled'
+    </select>
+    
+    <!-- 更新订单信息 -->
+    <update id="update">
+        UPDATE order_info
+        <set>
+            <if test="orderStatus != null">
+                order_status = #{orderStatus},
+            </if>
+            <if test="payTime != null">
+                pay_time = #{payTime},
+            </if>
+            <if test="shipTime != null">
+                ship_time = #{shipTime},
+            </if>
+            <if test="completeTime != null">
+                complete_time = #{completeTime},
+            </if>
+            <if test="cancelTime != null">
+                cancel_time = #{cancelTime},
+            </if>
+            update_time = NOW()
+        </set>
+        WHERE order_id = #{orderId}
+    </update>
+</mapper> 

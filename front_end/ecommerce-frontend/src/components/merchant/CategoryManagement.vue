@@ -231,15 +231,16 @@ const loadStores = async () => {
     }
     
     const response = await getStoresByMerchantId(authStore.merchantInfo.merchantId)
-    if (response.success && response.data) {
-      stores.value = response.data
+    const api = response.data
+    if (api.success && api.data) {
+      stores.value = api.data
       // 如果只有一个店铺，自动选择
       if (stores.value.length === 1) {
         currentStoreId.value = stores.value[0].storeId
         await loadCategoryTree()
       }
     } else {
-      ElMessage.error(response.message || '获取店铺列表失败')
+      ElMessage.error(api.message || '获取店铺列表失败')
     }
   } catch (error) {
     console.error('加载店铺列表失败:', error)
@@ -253,10 +254,11 @@ const loadCategoryTree = async () => {
   loading.value = true
   try {
     const response = await getCategoryTree(currentStoreId.value)
-    if (response.success && response.data) {
-      categoryTree.value = response.data
+    const api = response.data
+    if (api.success && api.data) {
+      categoryTree.value = api.data
     } else {
-      ElMessage.error(response.message || '获取分类树失败')
+      ElMessage.error(api.message || '获取分类树失败')
       categoryTree.value = []
     }
   } catch (error) {
@@ -316,11 +318,11 @@ const handleDelete = async (category: ProductCategory) => {
     )
     
     const response = await deleteCategory(category.categoryId)
-    if (response.success) {
+    if (response.data.success) {
       ElMessage.success('删除成功')
       await loadCategoryTree()
     } else {
-      ElMessage.error(response.message || '删除失败')
+      ElMessage.error(response.data.message || '删除失败')
     }
   } catch (error) {
     if (error !== 'cancel') {
@@ -355,12 +357,12 @@ const handleSaveCategory = async () => {
       }
       
       const response = await createCategory(createData)
-      if (response.success) {
+      if (response.data.success) {
         ElMessage.success('创建成功')
         categoryDialogVisible.value = false
         await loadCategoryTree()
       } else {
-        ElMessage.error(response.message || '创建失败')
+        ElMessage.error(response.data.message || '创建失败')
       }
     } else {
       const updateData: UpdateCategoryRequest = {
@@ -372,12 +374,12 @@ const handleSaveCategory = async () => {
       }
       
       const response = await updateCategory(categoryForm.categoryId!, updateData)
-      if (response.success) {
+      if (response.data.success) {
         ElMessage.success('更新成功')
         categoryDialogVisible.value = false
         await loadCategoryTree()
       } else {
-        ElMessage.error(response.message || '更新失败')
+        ElMessage.error(response.data.message || '更新失败')
       }
     }
   } catch (error) {

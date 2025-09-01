@@ -580,11 +580,12 @@ const loadProductList = async () => {
   loading.value = true
   try {
     const response = await getSPUList(queryParams.value)
-    if (response.success) {
-      productList.value = response.data?.list || []
-      total.value = response.data?.total || 0
+    const api = response.data
+    if (api.success && api.data) {
+      productList.value = api.data.list || []
+      total.value = api.data.total || 0
     } else {
-      ElMessage.error(response.message || '获取商品列表失败')
+      ElMessage.error(api.message || '获取商品列表失败')
     }
   } catch (error) {
     console.error('加载商品列表失败:', error)
@@ -597,8 +598,9 @@ const loadProductList = async () => {
 const loadStats = async () => {
   try {
     const response = await getSPUStats(props.storeId)
-    if (response.success && response.data) {
-      stats.value = response.data
+    const api = response.data
+    if (api.success && api.data) {
+      stats.value = api.data
     }
   } catch (error) {
     console.error('加载统计数据失败:', error)
@@ -679,11 +681,14 @@ const handlePublishProduct = async (product: SPU) => {
     )
     
     const response = await publishSPU(product.spuId!)
-    if (response.success) {
+    console.log('上架API响应:', response)
+    
+    const apiResponse = response.data
+    if (apiResponse.success) {
       ElMessage.success('商品上架成功')
       refreshProductList()
     } else {
-      ElMessage.error(response.message || '上架失败')
+      ElMessage.error(apiResponse.message || '上架失败')
     }
   } catch (error) {
     if (error !== 'cancel') {
@@ -702,11 +707,14 @@ const handleUnpublishProduct = async (product: SPU) => {
     )
     
     const response = await unpublishSPU(product.spuId!)
-    if (response.success) {
+    console.log('下架API响应:', response)
+    
+    const apiResponse = response.data
+    if (apiResponse.success) {
       ElMessage.success('商品下架成功')
       refreshProductList()
     } else {
-      ElMessage.error(response.message || '下架失败')
+      ElMessage.error(apiResponse.message || '下架失败')
     }
   } catch (error) {
     if (error !== 'cancel') {
@@ -730,12 +738,15 @@ const handleConfirmCopy = async () => {
   
   try {
     const response = await copySPU(currentProduct.value!.spuId!, copyForm.value.newName)
-    if (response.success) {
+    console.log('复制API响应:', response)
+    
+    const apiResponse = response.data
+    if (apiResponse.success) {
       ElMessage.success('商品复制成功')
       copyDialogVisible.value = false
       refreshProductList()
     } else {
-      ElMessage.error(response.message || '复制失败')
+      ElMessage.error(apiResponse.message || '复制失败')
     }
   } catch (error) {
     console.error('复制商品失败:', error)
@@ -752,11 +763,14 @@ const handleDeleteProduct = async (product: SPU) => {
     )
     
     const response = await deleteSPU(product.spuId!)
-    if (response.success) {
+    console.log('删除API响应:', response)
+    
+    const apiResponse = response.data
+    if (apiResponse.success) {
       ElMessage.success('商品删除成功')
       refreshProductList()
     } else {
-      ElMessage.error(response.message || '删除失败')
+      ElMessage.error(apiResponse.message || '删除失败')
     }
   } catch (error) {
     if (error !== 'cancel') {
@@ -777,11 +791,14 @@ const handleBatchPublish = async () => {
     )
     
     const response = await batchPublishSPU(spuIds)
-    if (response.success) {
+    console.log('批量上架API响应:', response)
+    
+    const apiResponse = response.data
+    if (apiResponse.success) {
       ElMessage.success('批量上架成功')
       refreshProductList()
     } else {
-      ElMessage.error(response.message || '批量上架失败')
+      ElMessage.error(apiResponse.message || '批量上架失败')
     }
   } catch (error) {
     if (error !== 'cancel') {
@@ -801,11 +818,14 @@ const handleBatchUnpublish = async () => {
     )
     
     const response = await batchUnpublishSPU(spuIds)
-    if (response.success) {
+    console.log('批量下架API响应:', response)
+    
+    const apiResponse = response.data
+    if (apiResponse.success) {
       ElMessage.success('批量下架成功')
       refreshProductList()
     } else {
-      ElMessage.error(response.message || '批量下架失败')
+      ElMessage.error(apiResponse.message || '批量下架失败')
     }
   } catch (error) {
     if (error !== 'cancel') {
@@ -825,11 +845,14 @@ const handleBatchDelete = async () => {
     )
     
     const response = await batchDeleteSPU(spuIds)
-    if (response.success) {
+    console.log('批量删除API响应:', response)
+    
+    const apiResponse = response.data
+    if (apiResponse.success) {
       ElMessage.success('批量删除成功')
       refreshProductList()
     } else {
-      ElMessage.error(response.message || '批量删除失败')
+      ElMessage.error(apiResponse.message || '批量删除失败')
     }
   } catch (error) {
     if (error !== 'cancel') {
@@ -1045,8 +1068,8 @@ const handleBatchCreateProduct = async () => {
         pageSize: 100 // 限制获取数量
       })
       
-      if (response.success && response.data) {
-        copyProductOptions.value = response.data.list || []
+      if (response.data.success && response.data.data) {
+        copyProductOptions.value = response.data.data.list || []
       }
     } catch (error) {
       console.error('加载商品列表失败:', error)
@@ -1190,12 +1213,12 @@ const handleCopyProducts = async () => {
     // 发送批量创建请求
     const response = await batchCreateSPU(batchProducts)
     
-    if (response.success) {
-      ElMessage.success(`批量创建成功: 已创建 ${response.data?.length || 0} 个商品`)
+    if (response.data.success) {
+      ElMessage.success(`批量创建成功: 已创建 ${response.data.data?.length || 0} 个商品`)
       batchCreateVisible.value = false
       refreshProductList() // 刷新商品列表
     } else {
-      throw new Error(response.message || '批量创建失败')
+      throw new Error(response.data.message || '批量创建失败')
     }
   } catch (error: any) {
     ElMessage.error(`批量创建失败: ${error.message || '未知错误'}`)
@@ -1264,12 +1287,12 @@ const handleImportTemplate = async () => {
     // 批量创建商品
     const response = await batchCreateSPU(parsedProducts)
     
-    if (response.success) {
-      ElMessage.success(`批量创建成功: 已创建 ${response.data?.length || 0} 个商品`)
+    if (response.data.success) {
+      ElMessage.success(`批量创建成功: 已创建 ${response.data.data?.length || 0} 个商品`)
       batchCreateVisible.value = false
       refreshProductList() // 刷新商品列表
     } else {
-      throw new Error(response.message || '批量创建失败')
+      throw new Error(response.data.message || '批量创建失败')
     }
   } catch (error: any) {
     // 详细记录错误信息

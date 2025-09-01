@@ -350,16 +350,16 @@
           <div class="order-tabs-container">
             <el-tabs v-model="activeOrderTab" @tab-change="handleOrderTabChange">
               <el-tab-pane label="全部订单" name="all">
-                <OrderList :filter="'all'" :orders="filteredOrders" />
+                <OrderList :filter="'all'" :orders="orders" :loading="loading" />
               </el-tab-pane>
               <el-tab-pane label="待处理" name="pending">
-                <OrderList :filter="'pending'" :orders="filteredOrders" />
+                <OrderList :filter="'pending'" :orders="orders" :loading="loading" />
               </el-tab-pane>
               <el-tab-pane label="已发货" name="shipped">
-                <OrderList :filter="'shipped'" :orders="filteredOrders" />
+                <OrderList :filter="'shipped'" :orders="orders" :loading="loading" />
               </el-tab-pane>
               <el-tab-pane label="已完成" name="completed">
-                <OrderList :filter="'completed'" :orders="filteredOrders" />
+                <OrderList :filter="'completed'" :orders="orders" :loading="loading" />
               </el-tab-pane>
             </el-tabs>
           </div>
@@ -440,6 +440,8 @@ import {
 } from '@/api/merchant/storeExtended'
 import type { StoreExtended, StoreExtendedCreateData, StoreExtendedUpdateData } from '@/api/merchant/storeExtended'
 import { draftService } from '@/services/draftService'
+import { getMerchantOrders, getOrderStatistics } from '@/api/order'
+import type { OrderInfo } from '@/types/order'
 
 // 导入组件
 import ProductManagement from '@/components/merchant/ProductManagement.vue'
@@ -485,6 +487,7 @@ const totalOrders = ref(0)
 const pendingOrders = ref(0)
 const shippedOrders = ref(0)
 const completedOrders = ref(0)
+const loading = ref(false) // 加载状态
 
 // 草稿数量
 const draftCount = ref(0)
@@ -510,21 +513,6 @@ const filteredStores = computed(() => {
   // 按状态筛选
   if (statusFilter.value) {
     result = result.filter(store => store.status === statusFilter.value)
-  }
-
-  return result
-})
-
-// 过滤后的订单列表
-const filteredOrders = computed(() => {
-  let result = orders.value
-
-  if (activeOrderTab.value === 'pending') {
-    result = result.filter(order => order.status === 'pending_payment' || order.status === 'pending_shipment')
-  } else if (activeOrderTab.value === 'shipped') {
-    result = result.filter(order => order.status === 'pending_receipt')
-  } else if (activeOrderTab.value === 'completed') {
-    result = result.filter(order => order.status === 'completed')
   }
 
   return result
@@ -557,6 +545,11 @@ const handleMenuSelect = (index: string) => {
   if (index === 'store-management') {
     currentView.value = 'list'
     loadDraftCount() // 加载草稿数量
+  } else if (index === 'order-management') {
+    // 在dashboard内部切换到订单管理视图
+    activeMenu.value = 'order-management'
+    // 加载订单数据
+    loadOrders()
   }
 }
 
@@ -581,18 +574,19 @@ const loadDashboardStats = async () => {
     }
     
     const response = await getDashboardStats(authStore.merchantInfo.merchantId)
-    if (response.success && response.data) {
-      const stats = response.data
-      storeCount.value = stats.storeCount
-      productCount.value = stats.productCount
-      orderCount.value = stats.orderCount
-      revenue.value = stats.totalRevenue.toFixed(2)
-      pendingOrderCount.value = stats.pendingOrderCount
-      shippedOrderCount.value = stats.shippedOrderCount
-      monthlyRevenue.value = stats.monthlyRevenue.toFixed(2)
-      monthlyOrderCount.value = stats.monthlyOrderCount
+    const apiResponse = response.data
+    if (apiResponse.success && apiResponse.data) {
+      const stats = apiResponse.data
+      storeCount.value = stats.storeCount || 0
+      productCount.value = stats.productCount || 0
+      orderCount.value = stats.orderCount || 0
+      revenue.value = (Number(stats.totalRevenue) || 0).toFixed(2)
+      pendingOrderCount.value = stats.pendingOrderCount || 0
+      shippedOrderCount.value = stats.shippedOrderCount || 0
+      monthlyRevenue.value = (Number(stats.monthlyRevenue) || 0).toFixed(2)
+      monthlyOrderCount.value = stats.monthlyOrderCount || 0
     } else {
-      ElMessage.error(response.message || '获取统计数据失败')
+      ElMessage.error(apiResponse.message || '获取统计数据失败')
     }
   } catch (error) {
     console.error('加载Dashboard数据失败:', error)
@@ -613,11 +607,12 @@ const loadStores = async () => {
       ? await getStoresExtendedByMerchantId(authStore.merchantInfo.merchantId)
       : await getStoresByMerchantId(authStore.merchantInfo.merchantId)
       
-    if (response.success && response.data) {
-      stores.value = response.data as StoreExtended[]
-      console.log('加载店铺列表成功:', response.data)
+    const apiResponse = response.data
+    if (apiResponse.success && apiResponse.data) {
+      stores.value = apiResponse.data as StoreExtended[]
+      console.log('加载店铺列表成功:', apiResponse.data)
     } else {
-      ElMessage.error(response.message || '获取店铺列表失败')
+      ElMessage.error(apiResponse.message || '获取店铺列表失败')
       stores.value = []
     }
   } catch (error) {
@@ -670,8 +665,9 @@ const handleDeleteStore = async (store: StoreExtended) => {
       : deleteStore
       
     const response = await deleteApi(store.storeId)
+    const apiResponse = response.data
       
-    if (response.success) {
+    if (apiResponse.success) {
       // 从列表中移除被删除的店铺
       stores.value = stores.value.filter(s => s.storeId !== store.storeId)
       ElMessage.success('店铺删除成功')
@@ -681,7 +677,7 @@ const handleDeleteStore = async (store: StoreExtended) => {
         storeCount.value -= 1
       }
     } else {
-      ElMessage.error(response.message || '删除店铺失败')
+      ElMessage.error(apiResponse.message || '删除店铺失败')
     }
   } catch (error) {
     if (error !== 'cancel') {
@@ -720,13 +716,18 @@ const toggleStoreStatus = async (store: StoreExtended) => {
           businessHours: store.businessHours || '周一至周日 9:00-22:00'
         })
       : await updateStore(store.storeId, { status: newStatus })
-      
-    if (response.success && response.data) {
+    
+    const apiResponse = response.data
+    if (apiResponse.success && apiResponse.data) {
       // 更新本地数据
-      store.status = newStatus
+      const updatedStore = apiResponse.data as StoreExtended
+      const storeIndex = stores.value.findIndex(s => s.storeId === updatedStore.storeId)
+      if (storeIndex !== -1) {
+        stores.value[storeIndex].status = updatedStore.status
+      }
       ElMessage.success(`${action}成功`)
     } else {
-      ElMessage.error(response.message || `${action}失败`)
+      ElMessage.error(apiResponse.message || `${action}失败`)
     }
   } catch (error) {
     if (error !== 'cancel') {
@@ -775,63 +776,113 @@ const handleImageError = (event: Event) => {
 // 订单管理相关方法
 const loadOrders = async () => {
   try {
-    // 模拟订单数据
-    const mockOrders = [
-      {
-        orderId: 1,
-        orderNo: 'ORD20241219001',
-        customerName: '张三',
-        storeName: '时尚服装店',
-        totalAmount: 299.00,
-        status: 'pending_payment',
-        createTime: '2024-12-19T10:00:00'
-      },
-      {
-        orderId: 2,
-        orderNo: 'ORD20241219002',
-        customerName: '李四',
-        storeName: '数码科技馆',
-        totalAmount: 2999.00,
-        status: 'pending_shipment',
-        createTime: '2024-12-19T11:00:00'
-      },
-      {
-        orderId: 3,
-        orderNo: 'ORD20241219003',
-        customerName: '王五',
-        storeName: '美食天地',
-        totalAmount: 89.00,
-        status: 'pending_receipt',
-        createTime: '2024-12-19T12:00:00'
-      },
-      {
-        orderId: 4,
-        orderNo: 'ORD20241218001',
-        customerName: '赵六',
-        storeName: '时尚服装店',
-        totalAmount: 599.00,
-        status: 'completed',
-        createTime: '2024-12-18T15:00:00'
-      }
-    ]
+    loading.value = true
     
-    orders.value = mockOrders
+    // 获取订单统计数据
+    const statsResponse = await getOrderStatistics()
+    const statsApiResponse = statsResponse.data
     
-    // 计算统计数据
-    totalOrders.value = mockOrders.length
-    pendingOrders.value = mockOrders.filter(order => 
-      order.status === 'pending_payment' || order.status === 'pending_shipment'
-    ).length
-    shippedOrders.value = mockOrders.filter(order => 
-      order.status === 'pending_receipt'
-    ).length
-    completedOrders.value = mockOrders.filter(order => 
-      order.status === 'completed'
-    ).length
+    if (statsApiResponse.success && statsApiResponse.data) {
+      const statsData = statsApiResponse.data
+      totalOrders.value = Number(statsData.totalOrders) || 0
+      pendingOrders.value = Number(statsData.pendingShipment) || 0
+      shippedOrders.value = Number(statsData.pendingReceipt) || 0
+      completedOrders.value = Number(statsData.completed) || 0
+    } else {
+      console.error('获取订单统计数据失败', statsApiResponse.message)
+      // 使用默认值或模拟数据
+      totalOrders.value = 0
+      pendingOrders.value = 0
+      shippedOrders.value = 0
+      completedOrders.value = 0
+    }
+
+    // 获取订单列表数据
+    const response = await getMerchantOrders({
+      pageNum: 1,
+      pageSize: 10,
+      orderNo: '',
+      orderStatus: undefined
+    })
+    const orderApiResponse = response.data;
+    
+    if (orderApiResponse.success && orderApiResponse.data && orderApiResponse.data.list) {
+      const orderList = orderApiResponse.data.list
+      orders.value = orderList.map((order: any) => ({
+        ...order,
+        customerName: order.userName || order.customerName || '未知客户',
+        storeName: order.storeName || '未知店铺',
+        totalAmount: Number(order.totalAmount) || 0,
+        status: order.orderStatus || order.status || 'unknown'
+      }))
+    } else {
+      console.error('获取订单列表失败', orderApiResponse.message)
+      useMockOrders()
+    }
   } catch (error) {
     console.error('加载订单数据失败:', error)
-    ElMessage.error('加载订单数据失败')
+    ElMessage.error('加载订单数据失败，将使用模拟数据')
+    useMockOrders()
+  } finally {
+    loading.value = false
   }
+}
+
+// 如果API不可用，使用模拟数据
+const useMockOrders = () => {
+  // 模拟订单数据
+  const mockOrders = [
+    {
+      orderId: 1,
+      orderNo: 'ORD20241219001',
+      customerName: '张三',
+      storeName: '时尚服装店',
+      totalAmount: 299.00,
+      status: 'pending_payment',
+      createTime: '2024-12-19T10:00:00'
+    },
+    {
+      orderId: 2,
+      orderNo: 'ORD20241219002',
+      customerName: '李四',
+      storeName: '数码科技馆',
+      totalAmount: 2999.00,
+      status: 'pending_shipment',
+      createTime: '2024-12-19T11:00:00'
+    },
+    {
+      orderId: 3,
+      orderNo: 'ORD20241219003',
+      customerName: '王五',
+      storeName: '美食天地',
+      totalAmount: 89.00,
+      status: 'pending_receipt',
+      createTime: '2024-12-19T12:00:00'
+    },
+    {
+      orderId: 4,
+      orderNo: 'ORD20241218001',
+      customerName: '赵六',
+      storeName: '时尚服装店',
+      totalAmount: 599.00,
+      status: 'completed',
+      createTime: '2024-12-18T15:00:00'
+    }
+  ]
+  
+  orders.value = mockOrders
+  
+  // 计算统计数据
+  totalOrders.value = mockOrders.length
+  pendingOrders.value = mockOrders.filter(order => 
+    order.status === 'pending_payment' || order.status === 'pending_shipment'
+  ).length
+  shippedOrders.value = mockOrders.filter(order => 
+    order.status === 'pending_receipt'
+  ).length
+  completedOrders.value = mockOrders.filter(order => 
+    order.status === 'completed'
+  ).length
 }
 
 const handleOrderTabChange = (tabName: string | number) => {
@@ -852,53 +903,38 @@ const handleSwitchToAttributes = (category: any) => {
 // 统一的店铺操作成功处理
 const handleStoreSuccess = async (storeData: StoreCreateData | StoreUpdateData | StoreExtendedCreateData | StoreExtendedUpdateData, storeId?: number) => {
   try {
+    let response
     if (storeId) {
       // 更新操作
-      const response = useExtendedApi.value
+      response = useExtendedApi.value
         ? await updateStoreExtended(storeId, storeData as StoreExtendedUpdateData)
         : await updateStore(storeId, storeData as StoreUpdateData)
-        
-      if (response.success && response.data) {
-        // 更新本地店铺列表中的数据
-        const storeIndex = stores.value.findIndex(store => store.storeId === storeId)
-        if (storeIndex !== -1) {
-          stores.value[storeIndex] = response.data as StoreExtended
-        }
-        
-        // 返回列表视图
-        currentView.value = 'list'
-        currentStore.value = null
-        
-        ElMessage.success(`店铺"${response.data.storeName}"更新成功！`)
-        
-        // 重新加载Dashboard统计数据
-        await loadDashboardStats()
-      } else {
-        ElMessage.error(response.message || '更新店铺失败')
-      }
     } else {
       // 创建操作
-      const response = useExtendedApi.value
+      response = useExtendedApi.value
         ? await createStoreExtended(storeData as StoreExtendedCreateData)
         : await createStore(storeData as StoreCreateData)
-        
-      if (response.success && response.data) {
-        // 将新店铺添加到列表中
-        stores.value.unshift(response.data as StoreExtended)
-        
-        // 更新统计数据
+    }
+    
+    const apiResponse = response.data
+    if (apiResponse.success && apiResponse.data) {
+      const returnedStore = apiResponse.data as StoreExtended
+      if (storeId) { // 更新
+        const storeIndex = stores.value.findIndex(store => store.storeId === storeId)
+        if (storeIndex !== -1) {
+          stores.value[storeIndex] = returnedStore
+        }
+      } else { // 创建
+        stores.value.unshift(returnedStore)
         storeCount.value = stores.value.length
-        
-        // 返回列表视图
-        currentView.value = 'list'
-        
-        ElMessage.success(`店铺"${response.data.storeName}"创建成功！`)
-        
-        // 重新加载Dashboard统计数据
-        await loadDashboardStats()
-      } else {
-        ElMessage.error(response.message || '创建店铺失败')
       }
+      
+      currentView.value = 'list'
+      currentStore.value = null
+      ElMessage.success(`店铺"${returnedStore.storeName}"操作成功！`)
+      await loadDashboardStats()
+    } else {
+      ElMessage.error(apiResponse.message || '操作店铺失败')
     }
   } catch (error) {
     const action = storeId ? '更新' : '创建'
@@ -944,6 +980,38 @@ onMounted(async () => {
   // 加载草稿数量
   loadDraftCount()
 })
+
+// 测试方法
+const testDashboardAPI = async () => {
+  console.log('=== 手动测试Dashboard API ===')
+  await loadDashboardStats()
+}
+
+const testStoreAPI = async () => {
+  console.log('=== 手动测试店铺API ===')
+  await loadStores()
+}
+
+const checkAuthStatus = () => {
+  console.log('=== 认证状态检查 ===')
+  console.log('isLoggedIn:', authStore.isLoggedIn)
+  console.log('merchantInfo:', authStore.merchantInfo)
+  console.log('accessToken:', authStore.accessToken ? `${authStore.accessToken.substring(0, 20)}...` : 'null')
+  console.log('localStorage数据:')
+  console.log('- merchant_access_token:', localStorage.getItem('merchant_access_token'))
+  console.log('- merchant_info:', localStorage.getItem('merchant_info'))
+  console.log('- merchant_refresh_token:', localStorage.getItem('merchant_refresh_token'))
+  
+  // 解析JWT token
+  if (authStore.accessToken) {
+    try {
+      const payload = JSON.parse(atob(authStore.accessToken.split('.')[1]))
+      console.log('JWT payload:', payload)
+    } catch (error) {
+      console.error('解析JWT失败:', error)
+    }
+  }
+}
 </script>
 
 <style scoped>

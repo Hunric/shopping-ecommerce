@@ -65,7 +65,16 @@ public class SecurityConfig {
                     "/api/test/**",                             // 测试接口
                     "/api/merchant/spu/template/download",      // 下载商品Excel模板
                     "/actuator/**",                             // 监控
-                    "/error"                                    // 错误页面
+                    "/error",                                   // 错误页面
+                    "/dashboard/**",                            // 前端静态资源路由 - 仪表盘
+                    "/merchant/dashboard/**",                   // 前端静态资源路由 - 仪表盘（带前缀）
+                    "/merchant/order-detail/**",                // 前端静态资源路由 - 订单详情
+                    "/merchant/product/**",                     // 前端静态资源路由 - 商品
+                    "/merchant/store/**",                       // 前端静态资源路由 - 店铺
+                    "/merchant/category/**",                    // 前端静态资源路由 - 分类
+                    "/*.js", "/*.css", "/*.ico", "/*.png",      // 静态资源文件
+                    "/assets/**",                               // 静态资源目录
+                    "/"                                         // 根路径
                 ).permitAll()
                 
                 // 其他所有请求都需要认证
@@ -84,48 +93,13 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        
-        // 允许的源 - 支持开发环境和Docker环境
-        configuration.setAllowedOriginPatterns(Arrays.asList(
-            "http://localhost:3000",           // 开发环境前端
-            "http://localhost",                // Docker环境Nginx
-            "http://127.0.0.1:3000",          // 本地IP
-            "http://127.0.0.1",               // 本地IP Nginx
-            "http://frontend",                 // Docker容器名
-            "http://shopping-frontend",        // Docker容器名
-            "*"                                // 允许所有源（生产环境可以限制）
-        ));
-        
-        // 允许的HTTP方法
-        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD", "PATCH"));
-        
-        // 允许的请求头
-        configuration.setAllowedHeaders(Arrays.asList(
-            "Content-Type",
-            "X-Requested-With",
-            "accept",
-            "Origin",
-            "Access-Control-Request-Method",
-            "Access-Control-Request-Headers",
-            "Authorization",
-            "Cache-Control",
-            "Pragma"
-        ));
-        
-        // 允许发送凭证
+        configuration.setAllowedOriginPatterns(Collections.singletonList("*"));
+        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type", "X-Requested-With"));
+        configuration.setExposedHeaders(Arrays.asList("Content-Disposition"));
         configuration.setAllowCredentials(true);
-        
-        // 暴露的响应头
-        configuration.setExposedHeaders(Arrays.asList(
-            "Access-Control-Allow-Origin",
-            "Access-Control-Allow-Credentials",
-            "Authorization",
-            "Content-Disposition"
-        ));
-        
-        // 预检请求的缓存时间
         configuration.setMaxAge(3600L);
-
+        
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
         

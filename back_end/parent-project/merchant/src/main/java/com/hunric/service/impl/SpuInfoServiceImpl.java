@@ -325,68 +325,91 @@ public class SpuInfoServiceImpl implements SpuInfoService {
 
     @Override
     public List<Map<String, Object>> generateSkuCombinations(Map<String, Object> basicAttributes) {
-        List<Map<String, Object>> combinations = new ArrayList<>();
-        
+        System.out.println("[SKU_DEBUG] --- generateSkuCombinations START ---");
         if (basicAttributes == null || basicAttributes.isEmpty()) {
-            return combinations;
+            System.out.println("[SKU_DEBUG] Input basicAttributes is null or empty. Returning empty list.");
+            return new ArrayList<>();
         }
+        System.out.println("[SKU_DEBUG] Input basicAttributes: " + basicAttributes);
 
-        // 获取所有属性名和对应的值列表
         List<String> attributeNames = new ArrayList<>(basicAttributes.keySet());
         List<List<String>> attributeValuesList = new ArrayList<>();
-        
-        for (String attributeName : attributeNames) {
-            Object values = basicAttributes.get(attributeName);
-            List<String> valueList = new ArrayList<>();
-            
-            if (values instanceof List) {
-                @SuppressWarnings("unchecked")
-                List<String> list = (List<String>) values;
-                valueList.addAll(list);
-            } else if (values instanceof String) {
-                valueList.add((String) values);
+
+        for (String key : attributeNames) {
+            Object value = basicAttributes.get(key);
+            System.out.println("[SKU_DEBUG] Processing attribute '" + key + "' with value: " + value);
+            if (value instanceof List) {
+                List<?> rawList = (List<?>) value;
+                if (rawList.isEmpty()) {
+                    System.out.println("[SKU_DEBUG] Attribute '" + key + "' has an empty list of values. No combinations possible. Returning empty list.");
+                    return new ArrayList<>();
+                }
+                List<String> values = new ArrayList<>();
+                for (Object item : rawList) {
+                    values.add(String.valueOf(item));
+                }
+                attributeValuesList.add(values);
+                System.out.println("[SKU_DEBUG] Successfully processed attribute '" + key + "'. Values: " + values);
+            } else {
+                System.out.println("[SKU_DEBUG] Attribute '" + key + "' has invalid format (not a List). Value type: " + (value != null ? value.getClass().getName() : "null") + ". Returning empty list.");
+                return new ArrayList<>();
             }
-            
-            attributeValuesList.add(valueList);
         }
 
-        // 生成笛卡尔积
-        generateCombinations(attributeNames, attributeValuesList, 0, new HashMap<>(), combinations);
-        
+        List<Map<String, Object>> combinations = new ArrayList<>();
+        System.out.println("[SKU_DEBUG] Starting recursion with " + attributeNames.size() + " attributes.");
+        generateCombinationsRecursive(0, new LinkedHashMap<>(), attributeNames, attributeValuesList, combinations);
+        System.out.println("[SKU_DEBUG] --- generateSkuCombinations END --- Total combinations generated: " + combinations.size());
         return combinations;
     }
 
-    private void generateCombinations(List<String> attributeNames, List<List<String>> attributeValuesList, 
-                                    int index, Map<String, String> currentCombination, 
-                                    List<Map<String, Object>> combinations) {
+    private void generateCombinationsRecursive(int index,
+                                               Map<String, String> currentCombination,
+                                               final List<String> attributeNames,
+                                               final List<List<String>> attributeValuesList,
+                                               final List<Map<String, Object>> totalCombinations) {
+
+        String indent = String.join("", Collections.nCopies(index, "  "));
+        System.out.println(indent + "[SKU_DEBUG] Entering recursion at index: " + index + ". Current combination: " + currentCombination);
+
         if (index == attributeNames.size()) {
-            // 生成SKU名称
+            System.out.println(indent + "[SKU_DEBUG] Base case reached. Building final SKU object.");
+            Map<String, Object> skuObject = new HashMap<>();
+            Map<String, String> attributeCombinationMap = new LinkedHashMap<>(currentCombination);
+
             StringBuilder skuNameBuilder = new StringBuilder();
-            Map<String, Object> combination = new HashMap<>();
-            Map<String, Object> attributeCombination = new HashMap<>();
-            
-            for (Map.Entry<String, String> entry : currentCombination.entrySet()) {
-                if (skuNameBuilder.length() > 0) {
-                    skuNameBuilder.append("-");
+            boolean first = true;
+            for (String value : attributeCombinationMap.values()) {
+                if (!first) {
+                    skuNameBuilder.append(" ");
                 }
-                skuNameBuilder.append(entry.getValue());
-                attributeCombination.put(entry.getKey(), entry.getValue());
+                skuNameBuilder.append(value);
+                first = false;
             }
-            
-            combination.put("skuName", skuNameBuilder.toString());
-            combination.put("attributeCombination", attributeCombination);
-            combinations.add(combination);
+
+            skuObject.put("skuName", skuNameBuilder.toString());
+            skuObject.put("attributeCombination", attributeCombinationMap);
+            skuObject.put("salePrice", 0.0);
+            skuObject.put("stockQuantity", 0);
+            skuObject.put("warnStock", 10);
+
+            totalCombinations.add(skuObject);
+            System.out.println(indent + "[SKU_DEBUG] Added new SKU to list: " + skuObject);
             return;
         }
 
-        String attributeName = attributeNames.get(index);
-        List<String> values = attributeValuesList.get(index);
-        
-        for (String value : values) {
-            currentCombination.put(attributeName, value);
-            generateCombinations(attributeNames, attributeValuesList, index + 1, currentCombination, combinations);
-            currentCombination.remove(attributeName);
+        String currentAttributeName = attributeNames.get(index);
+        List<String> currentAttributeValues = attributeValuesList.get(index);
+        System.out.println(indent + "[SKU_DEBUG] Looping through values for attribute '" + currentAttributeName + "': " + currentAttributeValues);
+
+        for (String value : currentAttributeValues) {
+            currentCombination.put(currentAttributeName, value);
+            System.out.println(indent + "[SKU_DEBUG] Recursing with index " + (index + 1) + " and combination: " + currentCombination);
+            generateCombinationsRecursive(index + 1, currentCombination, attributeNames, attributeValuesList, totalCombinations);
+            currentCombination.remove(currentAttributeName); // Backtrack
+            System.out.println(indent + "[SKU_DEBUG] Backtracked. Removed '" + currentAttributeName + "'. Current combination: " + currentCombination);
         }
+         System.out.println(indent + "[SKU_DEBUG] Finished loop for index " + index);
     }
     
     @Override

@@ -73,18 +73,65 @@ export default defineConfig({
     host: '0.0.0.0',
     // 配置代理以支持多服务架构
     proxy: {
+      // 直接/merchant路径的代理 - 主要用于orders等API
+      '/merchant': {  // 代理所有/merchant路径，但排除前端路由
+        target: 'http://localhost:8081',
+        changeOrigin: true,
+        secure: false,
+        configure: (proxy, options) => {
+          proxy.on('error', (err, req, res) => {
+            console.log('代理错误:', err.message);
+          });
+          proxy.on('proxyReq', (proxyReq, req, res) => {
+            console.log('发送代理请求:', req.method, req.url, '->', proxyReq.getHeader('host') + proxyReq.path);
+          });
+          proxy.on('proxyRes', (proxyRes, req, res) => {
+            console.log('收到代理响应:', proxyRes.statusCode, req.url);
+          });
+        },
+        bypass: (req, res, options) => {
+          // 排除前端路由路径，只代理API请求
+          const path = req.url || '';
+          console.log('检查路径是否需要代理:', path);
+          
+          // 如果是前端路由路径，则不代理
+          if (path.startsWith('/merchant/login') ||
+              path.startsWith('/merchant/register') ||
+              path.startsWith('/merchant/forget-password') ||
+              path.startsWith('/merchant/dashboard') ||
+              path.startsWith('/merchant/category')) {
+            console.log('前端路由，不代理:', path);
+            return path;
+          }
+          
+          // 对于API请求，继续代理
+          console.log('API请求，继续代理:', path);
+          return; // 返回undefined表示继续代理
+        },
+        rewrite: (path) => {
+          console.log('重写路径 - 原始:', path);
+          // 移除/merchant前缀，避免与context-path重复
+          // /merchant/orders/statistics -> /orders/statistics
+          const newPath = path.replace('/merchant', '');
+          console.log('重写路径 - 结果:', newPath);
+          return newPath;
+        }
+      },
       // 商家服务代理 - 将 /api/merchant 请求代理到商家服务
       '/api/merchant': {
         target: 'http://localhost:8081',
         changeOrigin: true,
         secure: false,
         rewrite: (path) => {
+          // 修复：商家服务的context-path是/merchant，但控制器已经有/api/merchant前缀
+          // 所以只需要添加context-path前缀，不要重复/api/merchant
+          console.log('商家服务代理 (原始路径):', path)
           const newPath = '/merchant' + path
-          console.log('商家服务代理:', path, ' -> ', newPath)
-          return newPath  // 添加 /merchant 前缀以匹配后端 context-path
+          console.log('商家服务代理 (重写后):', newPath)
+          return newPath
         }
       },
-      // 验证码服务代理 - common模块通过merchant服务提供
+      // 验证码服务代理
       '/api/verification': {
         target: 'http://localhost:8081',
         changeOrigin: true,
@@ -92,9 +139,10 @@ export default defineConfig({
         rewrite: (path) => {
           const newPath = '/merchant' + path
           console.log('验证码服务代理:', path, ' -> ', newPath)
-          return newPath  // 添加 /merchant 前缀以匹配后端 context-path
+          return newPath
         }
       },
+
       // 文件服务代理
       '/api/upload': {
         target: 'http://localhost:8082',
@@ -103,6 +151,60 @@ export default defineConfig({
         rewrite: (path) => {
           console.log('文件服务代理:', path, ' -> ', path)
           return path  // 保持原路径不变
+        }
+      },
+      // 用户收货地址服务代理 - 将 /api/user/shipping 请求代理到订单服务
+      '/api/user/shipping': {
+        target: 'http://localhost:8084',
+        changeOrigin: true,
+        secure: false,
+        rewrite: (path) => {
+          console.log('用户收货地址服务代理 (原始路径):', path)
+          const newPath = '/order' + path
+          console.log('用户收货地址服务代理 (重写后):', newPath)
+          return newPath  // 重写路径以匹配订单服务的context-path
+        }
+      },
+      // 用户订单服务代理 - 将 /api/user/orders 请求代理到订单服务
+      '/api/user/orders': {
+        target: 'http://localhost:8084',
+        changeOrigin: true,
+        secure: false,
+        rewrite: (path) => {
+          console.log('用户订单服务代理 (原始路径):', path)
+          const newPath = '/order' + path
+          console.log('用户订单服务代理 (重写后):', newPath)
+          return newPath  // 重写路径以匹配订单服务的context-path
+        }
+      },
+      // 用户购物服务代理 - 将 /api/user 请求代理到购物服务
+      '/api/user': {
+        target: 'http://localhost:8083',
+        changeOrigin: true,
+        secure: false,
+        rewrite: (path) => {
+          console.log('用户服务代理:', path, ' -> ', path)
+          return path  // 保持原路径不变
+        }
+      },
+      // 购物车服务代理 - 将 /api/cart 请求代理到购物服务
+      '/api/cart': {
+        target: 'http://localhost:8083',
+        changeOrigin: true,
+        secure: false,
+        rewrite: (path) => {
+          console.log('购物车服务代理:', path, ' -> ', path)
+          return path  // 保持原路径不变
+        }
+      },
+      // 订单服务代理 - 将 /api/order 请求代理到订单服务
+      '/api/order': {
+        target: 'http://localhost:8084',
+        changeOrigin: true,
+        secure: false,
+        rewrite: (path) => {
+          console.log('订单服务代理:', path, ' -> ', path.replace('/api/order', '/order/api/order'))
+          return path.replace('/api/order', '/order/api/order')  // 重写路径以匹配订单服务的context-path
         }
       },
       // 文件访问代理

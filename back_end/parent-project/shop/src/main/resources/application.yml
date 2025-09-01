@@ -1,0 +1,125 @@
+server:
+  port: 8083
+  servlet:
+    context-path: /
+
+spring:
+  application:
+    name: shop-service
+  profiles:
+    active: dev
+
+# 开发环境配置
+---
+spring:
+  config:
+    activate:
+      on-profile: dev
+  
+  # 数据库配置
+  datasource:
+    url: jdbc:mysql://localhost:3306/ecommerce_db?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+    username: root
+    password: 123456
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    
+    # 连接池配置
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 5
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+      connection-test-query: SELECT 1
+  
+  # JPA配置
+  jpa:
+    hibernate:
+      ddl-auto: none
+    show-sql: true
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQL8Dialect
+        format_sql: true
+  
+  # 禁用Flyway
+  flyway:
+    enabled: false
+  
+  # 邮件服务配置 - 真实163邮箱配置
+  mail:
+    host: smtp.163.com
+    port: 465
+    username: 18579776220@163.com
+    password: RWpSmbKNgiNa24ib
+    properties:
+      mail:
+        smtp:
+          auth: true
+          ssl:
+            enable: true
+            required: true
+            trust: smtp.163.com
+          socketFactory:
+            class: javax.net.ssl.SSLSocketFactory
+            port: 465
+            fallback: false
+
+# Redis配置
+redis:
+  host: localhost
+  port: 6379
+  password:
+  database: 0
+  timeout: 5000ms
+  lettuce:
+    pool:
+      max-active: 8
+      max-wait: -1ms
+      max-idle: 8
+      min-idle: 0
+
+# JWT配置
+jwt:
+  secret: hunric-shopping-ecommerce-jwt-secret-key-2024-very-long-secure-key-for-hs512-algorithm-minimum-512-bits-required
+  expiration: 86400000  # 24小时（毫秒）
+  refresh-expiration: 604800000  # 7天（毫秒）
+
+logging:
+  level:
+    com.hunric: DEBUG
+    org.springframework.web: DEBUG
+    org.springframework.orm.jpa: DEBUG
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+
+# 生产环境配置
+---
+spring:
+  config:
+    activate:
+      on-profile: prod
+
+logging:
+  level:
+    com.hunric: INFO
+    root: WARN
+  file:
+    name: logs/shop-service.log
+
+# Docker环境配置
+---
+spring:
+  config:
+    activate:
+      on-profile: docker
+
+server:
+  port: 8083
+
+logging:
+  level:
+    com.hunric: INFO
+    root: WARN

@@ -177,6 +177,7 @@ import {
 interface Props {
   filter: string
   orders: any[]
+  loading?: boolean
 }
 
 const props = defineProps<Props>()
@@ -189,9 +190,33 @@ const dateRange = ref<[Date, Date] | null>(null)
 const orderDetailVisible = ref(false)
 const currentOrder = ref<any>(null)
 
+// 设置loading状态
+watch(() => props.loading, (newValue) => {
+  if (newValue !== undefined) {
+    loading.value = newValue
+  }
+})
+
 // 计算属性
 const filteredOrders = computed(() => {
   let result = props.orders
+
+  // 根据父组件传入的filter进行状态过滤
+  switch (props.filter) {
+    case 'pending':
+      result = result.filter(order => order.status === 'pending_payment' || order.status === 'pending_shipment')
+      break
+    case 'shipped':
+      result = result.filter(order => order.status === 'pending_receipt')
+      break
+    case 'completed':
+      result = result.filter(order => order.status === 'completed')
+      break
+    // 'all' 或其他情况不需要额外过滤
+    case 'all':
+    default:
+      break
+  }
 
   // 按关键词搜索
   if (searchKeyword.value) {

@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hunric.mapper.OrderInfoMapper">
+    
+    <!-- 基础列集合 -->
+    <sql id="Base_Column_List">
+        order_id, order_no, user_id, store_id, shipping_id, total_amount, actual_amount, 
+        discount_amount, shipping_fee, order_status, payment_method, order_note, order_items, 
+        create_time, pay_time, ship_time, complete_time, cancel_time, update_time
+    </sql>
+    
+    <!-- 根据ID查询订单信息 -->
+    <select id="findById" resultType="com.hunric.model.OrderInfo">
+        SELECT <include refid="Base_Column_List" />
+        FROM order_info
+        WHERE order_id = #{id}
+    </select>
+    
+    <!-- 根据条件查询订单列表（分页） -->
+    <select id="findByCondition" resultType="com.hunric.model.OrderInfo">
+        SELECT <include refid="Base_Column_List" />
+        FROM order_info
+        <where>
+            <if test="condition.userId != null">
+                AND user_id = #{condition.userId}
+            </if>
+            <if test="condition.storeId != null">
+                AND store_id = #{condition.storeId}
+            </if>
+            <if test="condition.orderNo != null and condition.orderNo != ''">
+                AND order_no = #{condition.orderNo}
+            </if>
+            <if test="condition.orderStatus != null and condition.orderStatus != ''">
+                AND order_status = #{condition.orderStatus}
+            </if>
+        </where>
+        ORDER BY create_time DESC
+        LIMIT #{offset}, #{limit}
+    </select>
+    
+    <!-- 根据条件查询订单数量 -->
+    <select id="countByCondition" resultType="java.lang.Long">
+        SELECT COUNT(*)
+        FROM order_info
+        <where>
+            <if test="condition.userId != null">
+                AND user_id = #{condition.userId}
+            </if>
+            <if test="condition.storeId != null">
+                AND store_id = #{condition.storeId}
+            </if>
+            <if test="condition.orderNo != null and condition.orderNo != ''">
+                AND order_no = #{condition.orderNo}
+            </if>
+            <if test="condition.orderStatus != null and condition.orderStatus != ''">
+                AND order_status = #{condition.orderStatus}
+            </if>
+        </where>
+    </select>
+    
+    <!-- 插入订单信息 -->
+    <insert id="insert" useGeneratedKeys="true" keyProperty="orderId" parameterType="com.hunric.model.OrderInfo">
+        INSERT INTO order_info (
+            order_no, user_id, store_id, shipping_id, total_amount, actual_amount,
+            discount_amount, shipping_fee, order_status, payment_method, order_note, order_items, 
+            create_time, update_time
+        ) VALUES (
+            #{orderNo}, #{userId}, #{storeId}, #{shippingId}, #{totalAmount}, #{actualAmount},
+            #{discountAmount}, #{shippingFee}, #{orderStatus}, #{paymentMethod}, #{orderNote}, #{orderItems}, 
+            #{createTime}, #{updateTime}
+        )
+    </insert>
+    
+    <!-- 更新订单信息 -->
+    <update id="update" parameterType="com.hunric.model.OrderInfo">
+        UPDATE order_info
+        <set>
+            <if test="orderStatus != null">order_status = #{orderStatus},</if>
+            <if test="paymentMethod != null">payment_method = #{paymentMethod},</if>
+            <if test="payTime != null">pay_time = #{payTime},</if>
+            <if test="shipTime != null">ship_time = #{shipTime},</if>
+            <if test="completeTime != null">complete_time = #{completeTime},</if>
+            <if test="cancelTime != null">cancel_time = #{cancelTime},</if>
+            update_time = #{updateTime}
+        </set>
+        WHERE order_id = #{orderId}
+    </update>
+    
+    <!-- 根据商家ID查询订单数量 -->
+    <select id="countByMerchantId" resultType="java.lang.Long">
+        SELECT COUNT(*)
+        FROM order_info
+        WHERE store_id = #{merchantId}
+    </select>
+    
+    <!-- 根据商家ID和订单状态查询订单数量 -->
+    <select id="countByMerchantIdAndStatus" resultType="java.lang.Long">
+        SELECT COUNT(*)
+        FROM order_info
+        WHERE store_id = #{merchantId} AND order_status = #{orderStatus}
+    </select>
+    
+    <!-- 根据用户ID查询订单列表（分页） -->
+    <select id="findByUserId" resultType="com.hunric.model.OrderInfo">
+        SELECT <include refid="Base_Column_List" />
+        FROM order_info
+        WHERE user_id = #{userId}
+        ORDER BY create_time DESC
+        LIMIT #{offset}, #{limit}
+    </select>
+    
+    <!-- 根据用户ID查询订单数量 -->
+    <select id="countByUserId" resultType="java.lang.Long">
+        SELECT COUNT(*)
+        FROM order_info
+        WHERE user_id = #{userId}
+    </select>
+</mapper> 

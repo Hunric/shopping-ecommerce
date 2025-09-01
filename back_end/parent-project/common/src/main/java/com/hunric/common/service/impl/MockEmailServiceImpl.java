@@ -18,7 +18,7 @@ import java.util.concurrent.TimeUnit;
  * 不发送真实邮件，而是在控制台输出验证码
  */
 @Service
-@Profile("!prod")  // 非生产环境使用
+@Profile("test")  // 只在测试环境使用
 public class MockEmailServiceImpl implements EmailService {
 
     private final RedisTemplate<String, Object> redisTemplate;
@@ -133,6 +133,13 @@ public class MockEmailServiceImpl implements EmailService {
             String storedCode = codeMap.get("code");
             boolean isValid = storedCode != null && storedCode.equals(code);
             System.out.println("验证码匹配结果: " + isValid + " for " + redisKey);
+            
+            // 如果验证成功，标记为已使用
+            if (isValid) {
+                markCodeAsUsed(email, purpose);
+                System.out.println("验证码验证成功，已标记为已使用: " + redisKey);
+            }
+            
             return isValid;
         } catch (Exception e) {
             System.err.println("验证验证码时出错: " + e.getMessage());

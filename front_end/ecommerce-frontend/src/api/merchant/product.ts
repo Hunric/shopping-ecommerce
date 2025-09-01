@@ -126,7 +126,7 @@ export interface PageResponse<T> {
  */
 export const getProducts = async (params: ProductQueryParams): Promise<ApiResponse<PageResponse<Product>>> => {
   const response = await request.get('/api/merchant/product', { params })
-  return response.data
+  return response as any
 }
 
 /**
@@ -134,7 +134,7 @@ export const getProducts = async (params: ProductQueryParams): Promise<ApiRespon
  */
 export const getProductsByStore = async (storeId: number, params?: Omit<ProductQueryParams, 'storeId'>): Promise<ApiResponse<PageResponse<Product>>> => {
   const response = await request.get(`/api/merchant/product/store/${storeId}`, { params })
-  return response.data
+  return response as any
 }
 
 /**
@@ -142,7 +142,7 @@ export const getProductsByStore = async (storeId: number, params?: Omit<ProductQ
  */
 export const getProductsByCategory = async (categoryId: number, params?: Omit<ProductQueryParams, 'categoryId'>): Promise<ApiResponse<PageResponse<Product>>> => {
   const response = await request.get(`/api/merchant/product/category/${categoryId}`, { params })
-  return response.data
+  return response as any
 }
 
 /**
@@ -150,7 +150,7 @@ export const getProductsByCategory = async (categoryId: number, params?: Omit<Pr
  */
 export const getProductById = async (productId: number): Promise<ApiResponse<Product>> => {
   const response = await request.get(`/api/merchant/product/${productId}`)
-  return response.data
+  return response as any
 }
 
 /**
@@ -158,7 +158,7 @@ export const getProductById = async (productId: number): Promise<ApiResponse<Pro
  */
 export const createProduct = async (data: CreateProductRequest): Promise<ApiResponse<Product>> => {
   const response = await request.post('/api/merchant/product', data)
-  return response.data
+  return response as any
 }
 
 /**
@@ -166,7 +166,7 @@ export const createProduct = async (data: CreateProductRequest): Promise<ApiResp
  */
 export const updateProduct = async (productId: number, data: UpdateProductRequest): Promise<ApiResponse<Product>> => {
   const response = await request.put(`/api/merchant/product/${productId}`, data)
-  return response.data
+  return response as any
 }
 
 /**
@@ -174,7 +174,7 @@ export const updateProduct = async (productId: number, data: UpdateProductReques
  */
 export const deleteProduct = async (productId: number): Promise<ApiResponse<string>> => {
   const response = await request.delete(`/api/merchant/product/${productId}`)
-  return response.data
+  return response as any
 }
 
 /**
@@ -182,7 +182,7 @@ export const deleteProduct = async (productId: number): Promise<ApiResponse<stri
  */
 export const batchOperateProducts = async (data: BatchProductRequest): Promise<ApiResponse<string>> => {
   const response = await request.post('/api/merchant/product/batch', data)
-  return response.data
+  return response as any
 }
 
 /**
@@ -190,7 +190,7 @@ export const batchOperateProducts = async (data: BatchProductRequest): Promise<A
  */
 export const putProductOnShelf = async (productId: number): Promise<ApiResponse<Product>> => {
   const response = await request.put(`/api/merchant/product/${productId}/on-shelf`)
-  return response.data
+  return response as any
 }
 
 /**
@@ -198,7 +198,7 @@ export const putProductOnShelf = async (productId: number): Promise<ApiResponse<
  */
 export const putProductOffShelf = async (productId: number): Promise<ApiResponse<Product>> => {
   const response = await request.put(`/api/merchant/product/${productId}/off-shelf`)
-  return response.data
+  return response as any
 }
 
 /**
@@ -206,7 +206,7 @@ export const putProductOffShelf = async (productId: number): Promise<ApiResponse
  */
 export const copyProduct = async (productId: number): Promise<ApiResponse<Product>> => {
   const response = await request.post(`/api/merchant/product/${productId}/copy`)
-  return response.data
+  return response as any
 }
 
 /**
@@ -221,7 +221,7 @@ export const getProductStats = async (storeId: number): Promise<ApiResponse<{
   lowStockProducts: number
 }>> => {
   const response = await request.get(`/api/merchant/product/stats/${storeId}`)
-  return response.data
+  return response as any
 }
 
 // 商品状态选项

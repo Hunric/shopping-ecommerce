@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hunric.mapper.UserInfoMapper">
+    <!-- 结果映射 -->
+    <resultMap id="BaseResultMap" type="com.hunric.model.UserInfo">
+        <id column="user_id" property="userId" />
+        <result column="username" property="username" />
+        <result column="password" property="password" />
+        <result column="nickname" property="nickname" />
+        <result column="phone" property="phone" />
+        <result column="email" property="email" />
+        <result column="avatar" property="avatar" />
+        <result column="gender" property="gender" />
+        <result column="birthday" property="birthday" />
+        <result column="status" property="status" />
+        <result column="last_login_time" property="lastLoginTime" />
+        <result column="create_time" property="createTime" />
+        <result column="update_time" property="updateTime" />
+    </resultMap>
+    
+    <!-- 基础列 -->
+    <sql id="Base_Column_List">
+        user_id, username, password, nickname, phone, email, avatar, gender, 
+        birthday, status, last_login_time, create_time, update_time
+    </sql>
+    
+    <!-- 根据ID查询用户信息 -->
+    <select id="findById" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List" />
+        FROM user_info
+        WHERE user_id = #{id}
+    </select>
+    
+    <!-- 根据用户名查询用户信息 -->
+    <select id="findByUsername" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List" />
+        FROM user_info
+        WHERE username = #{username}
+    </select>
+    
+    <!-- 根据邮箱查询用户信息 -->
+    <select id="findByEmail" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List" />
+        FROM user_info
+        WHERE email = #{email}
+    </select>
+    
+    <!-- 根据手机号查询用户信息 -->
+    <select id="findByPhone" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List" />
+        FROM user_info
+        WHERE phone = #{phone}
+    </select>
+    
+    <!-- 根据ID查询用户名 -->
+    <select id="findUsernameById" resultType="java.lang.String">
+        SELECT username
+        FROM user_info
+        WHERE user_id = #{id}
+    </select>
+    
+    <!-- 插入用户信息 -->
+    <insert id="insert" useGeneratedKeys="true" keyProperty="userId">
+        INSERT INTO user_info (
+            username, password, nickname, phone, email, avatar, gender, 
+            birthday, status, last_login_time, create_time, update_time
+        ) VALUES (
+            #{username}, #{password}, #{nickname}, #{phone}, #{email}, #{avatar}, #{gender}, 
+            #{birthday}, #{status}, #{lastLoginTime}, NOW(), NOW()
+        )
+    </insert>
+    
+    <!-- 更新用户信息 -->
+    <update id="update">
+        UPDATE user_info
+        <set>
+            <if test="password != null">
+                password = #{password},
+            </if>
+            <if test="nickname != null">
+                nickname = #{nickname},
+            </if>
+            <if test="phone != null">
+                phone = #{phone},
+            </if>
+            <if test="email != null">
+                email = #{email},
+            </if>
+            <if test="avatar != null">
+                avatar = #{avatar},
+            </if>
+            <if test="gender != null">
+                gender = #{gender},
+            </if>
+            <if test="birthday != null">
+                birthday = #{birthday},
+            </if>
+            <if test="status != null">
+                status = #{status},
+            </if>
+            <if test="lastLoginTime != null">
+                last_login_time = #{lastLoginTime},
+            </if>
+            update_time = NOW()
+        </set>
+        WHERE user_id = #{userId}
+    </update>
+</mapper> 

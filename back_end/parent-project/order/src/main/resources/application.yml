@@ -1,0 +1,54 @@
+server:
+  port: 8084  # 订单模块端口
+  servlet:
+    context-path: /order  # 添加context-path，避免与其他服务冲突
+
+spring:
+  application:
+    name: order-service
+  # 引入数据库配置
+  profiles:
+    include: db
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/ecommerce_db?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+    username: root
+    password: root
+  jackson:
+    date-format: yyyy-MM-dd HH:mm:ss
+    time-zone: GMT+8
+  # Spring Security配置
+  security:
+    user:
+      name: admin
+      password: admin
+    # 禁用Spring Boot Actuator的安全自动配置
+  boot:
+    admin:
+      client:
+        enabled: false
+
+# 禁用Spring Boot Actuator的安全自动配置
+management:
+  security:
+    enabled: false
+
+mybatis:
+  mapper-locations: classpath:mapper/*.xml
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+
+logging:
+  level:
+    com.hunric.mapper: debug
+
+# SpringDoc OpenAPI配置
+springdoc:
+  api-docs:
+    enabled: true
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    tags-sorter: alpha
+    operations-sorter: alpha 

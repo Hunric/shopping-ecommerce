@@ -56,13 +56,28 @@ const request = axios.create({
 
 // 无需认证的接口路径
 const noAuthRequired = [
+  // 商家认证相关
   '/api/merchant/register',
   '/api/merchant/send-login-code',
   '/api/merchant/login',
   '/api/merchant/login/password',
   '/api/merchant/send-reset-password-code',
   '/api/merchant/verify-reset-password-code',
-  '/api/merchant/reset-password'
+  '/api/merchant/reset-password',
+  // 用户认证相关
+  '/api/user/auth/register',
+  '/api/user/auth/send-register-code',
+  '/api/user/auth/verify-register-code',
+  '/api/user/auth/send-login-code',
+  '/api/user/auth/login',
+  '/api/user/auth/login/password',
+  '/api/user/auth/send-reset-password-code',
+  '/api/user/auth/verify-reset-password-code',
+  '/api/user/auth/reset-password',
+  // 公共API
+  '/api/user/product/hot',
+  '/api/user/product/recommended',
+  '/api/user/product/category/list'
 ];
 
 // 请求拦截器
@@ -88,13 +103,50 @@ request.interceptors.request.use(
     const isNoAuthPath = noAuthRequired.some(path => config.url?.includes(path));
     
     // 只在需要认证的接口上添加令牌
-    if (!isNoAuthPath && authStore.accessToken) {
-      config.headers.Authorization = `Bearer ${authStore.accessToken}`
-      console.log('已添加认证token')
-    } else if (isNoAuthPath) {
-      console.log('该接口无需认证令牌')
+    if (!isNoAuthPath) {
+      const userToken = localStorage.getItem('user_access_token')
+      const merchantToken = authStore.accessToken
+      
+      // 根据API路径判断使用哪种token
+      if (config.url?.includes('/api/merchant/') || config.url?.includes('/merchant/')) {
+        // 商家API使用商家token
+        if (merchantToken) {
+          config.headers.Authorization = `Bearer ${merchantToken}`
+          console.log('已添加商家认证token')
+        } else {
+          console.log('未找到商家认证token')
+        }
+      } else if (config.url?.includes('/api/user/') || config.url?.includes('/api/cart/')) {
+        // 用户API和购物车API使用用户token
+        console.log('=== 用户/购物车API认证检查 ===')
+        console.log('请求URL:', config.url)
+        console.log('userToken存在:', !!userToken)
+        console.log('userToken值:', userToken ? `${userToken.substring(0, 20)}...` : 'null')
+        
+        if (userToken) {
+          config.headers.Authorization = `Bearer ${userToken}`
+          console.log('已添加用户认证token')
+        } else {
+          console.log('⚠️ 未找到用户认证token - 将导致403错误')
+          console.log('所有localStorage用户数据:')
+          console.log('- user_access_token:', localStorage.getItem('user_access_token'))
+          console.log('- user_info:', localStorage.getItem('user_info'))
+          console.log('- user_refresh_token:', localStorage.getItem('user_refresh_token'))
+        }
+      } else {
+        // 其他API，优先使用用户token，然后是商家token
+        if (userToken) {
+          config.headers.Authorization = `Bearer ${userToken}`
+          console.log('已添加用户认证token（默认）')
+        } else if (merchantToken) {
+          config.headers.Authorization = `Bearer ${merchantToken}`
+          console.log('已添加商家认证token（默认）')
+        } else {
+          console.log('未找到认证token')
+        }
+      }
     } else {
-      console.log('未找到认证token')
+      console.log('该接口无需认证令牌')
     }
     
     return config
@@ -120,6 +172,7 @@ request.interceptors.response.use(
       return Promise.reject(error)
     }
     
+    // 关键修复：返回完整的响应对象，而不是提前解包
     return response
   },
   (error) => {

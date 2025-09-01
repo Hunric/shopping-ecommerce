@@ -680,41 +680,108 @@ onMounted(async () => {
 
 // 加载店铺列表
 const loadStores = async () => {
+  console.log('=== 开始加载店铺列表 ===')
+  
   if (!authStore.merchantInfo?.merchantId) {
     console.warn('商家信息不完整，跳过加载店铺列表')
+    console.log('当前商家信息:', authStore.merchantInfo)
+    ElMessage.warning('商家信息不完整，请重新登录')
     return
   }
   
+  console.log('商家ID:', authStore.merchantInfo.merchantId)
+  
   try {
     const response = await getStoresByMerchantId(authStore.merchantInfo.merchantId)
-    if (response.success && response.data) {
-      stores.value = response.data
+    console.log('店铺API响应:', response)
+    
+    const apiResponse = response.data
+    console.log('店铺API数据:', apiResponse)
+    
+    if (apiResponse.success && apiResponse.data) {
+      stores.value = apiResponse.data
+      console.log('店铺列表加载成功:', stores.value)
+      console.log('店铺数量:', stores.value.length)
+      
       if (stores.value.length > 0 && !currentStoreId.value) {
         currentStoreId.value = stores.value[0].storeId
+        console.log('自动选择第一个店铺:', currentStoreId.value)
         await loadCategoryTree()
+      } else if (stores.value.length === 0) {
+        ElMessage.warning('您还没有创建店铺，请先创建店铺')
       }
+    } else {
+      console.error('店铺API返回失败:', apiResponse.message)
+      ElMessage.error(apiResponse.message || '获取店铺列表失败')
+      stores.value = []
     }
   } catch (error) {
-    console.error('加载店铺列表失败:', error)
-    // 不显示错误消息，因为这可能在组件初始化时发生
+    console.error('=== 店铺加载异常 ===')
+    console.error('错误详情:', error)
+    console.error('错误类型:', typeof error)
+    console.error('错误消息:', error.message)
+    if (error.response) {
+      console.error('响应状态:', error.response.status)
+      console.error('响应数据:', error.response.data)
+    }
+    ElMessage.error('加载店铺列表失败，请稍后重试')
+    stores.value = []
   }
 }
 
 // 加载分类树
 const loadCategoryTree = async () => {
-  if (!currentStoreId.value) return
+  if (!currentStoreId.value) {
+    console.warn('店铺ID为空，无法加载分类树')
+    return
+  }
+  
+  console.log('=== 开始加载分类树 ===')
+  console.log('店铺ID:', currentStoreId.value)
   
   categoryLoading.value = true
   try {
     const response = await getCategoryTree(currentStoreId.value)
-    if (response.success && response.data) {
-      categoryTree.value = response.data
+    console.log('分类树API响应:', response)
+    
+    const apiResponse = response.data
+    console.log('分类树API数据:', apiResponse)
+    
+    if (apiResponse.success && apiResponse.data) {
+      categoryTree.value = apiResponse.data
+      console.log('分类树加载成功:', categoryTree.value)
+      console.log('分类数量:', categoryTree.value.length)
+      
+      // 检查分类结构
+      categoryTree.value.forEach((category, index) => {
+        console.log(`分类${index + 1}:`, {
+          id: category.categoryId,
+          name: category.categoryName,
+          hasChildren: !!(category.children && category.children.length > 0),
+          childrenCount: category.children ? category.children.length : 0,
+          isLeaf: category.isLeaf
+        })
+      })
+      
+      if (categoryTree.value.length === 0) {
+        ElMessage.warning('该店铺暂无分类数据，请先创建分类')
+      }
     } else {
-      ElMessage.error(response.message || '加载分类失败')
+      console.error('分类树API返回失败:', apiResponse.message)
+      ElMessage.error(apiResponse.message || '加载分类失败')
+      categoryTree.value = []
     }
   } catch (error) {
-    console.error('加载分类失败:', error)
-    ElMessage.error('加载分类失败')
+    console.error('=== 分类树加载异常 ===')
+    console.error('错误详情:', error)
+    console.error('错误类型:', typeof error)
+    console.error('错误消息:', error.message)
+    if (error.response) {
+      console.error('响应状态:', error.response.status)
+      console.error('响应数据:', error.response.data)
+    }
+    ElMessage.error('加载分类失败，请稍后重试')
+    categoryTree.value = []
   } finally {
     categoryLoading.value = false
   }
@@ -770,7 +837,8 @@ const handleStoreChange = () => {
    // 检查是否可以管理属性
    try {
      const response = await canManageAttributes(category.categoryId)
-     canManageAttributesFlag.value = response.success && response.data
+     const apiResponse = response.data
+     canManageAttributesFlag.value = apiResponse.success && apiResponse.data
      
      if (canManageAttributesFlag.value) {
        loadAttributes()
@@ -791,10 +859,11 @@ const loadAttributes = async () => {
   attributeLoading.value = true
   try {
     const response = await getCategoryAttributes(selectedCategory.value.categoryId)
-    if (response.success && response.data) {
-      attributes.value = response.data
+    const apiResponse = response.data
+    if (apiResponse.success && apiResponse.data) {
+      attributes.value = apiResponse.data
     } else {
-      ElMessage.error(response.message || '加载属性失败')
+      ElMessage.error(apiResponse.message || '加载属性失败')
     }
   } catch (error) {
     console.error('加载属性失败:', error)
@@ -842,11 +911,12 @@ const editAttribute = (attribute: CategoryAttribute) => {
      )
      
      const response = await deleteAttribute(attribute.attributeId)
-     if (response.success) {
+     const apiResponse = response.data
+     if (apiResponse.success) {
        ElMessage.success('删除成功')
        loadAttributes()
      } else {
-       ElMessage.error(response.message || '删除失败')
+       ElMessage.error(apiResponse.message || '删除失败')
      }
    } catch (error) {
      if (error !== 'cancel') {
@@ -875,12 +945,13 @@ const handleSaveAttribute = async () => {
       }
       
       const response = await createAttribute(createData)
-      if (response.success) {
+      const apiResponse = response.data
+      if (apiResponse.success) {
         ElMessage.success('创建成功')
         attributeDialogVisible.value = false
         loadAttributes()
       } else {
-        ElMessage.error(response.message || '创建失败')
+        ElMessage.error(apiResponse.message || '创建失败')
       }
     } else {
       const updateData: UpdateAttributeRequest = {
@@ -892,12 +963,13 @@ const handleSaveAttribute = async () => {
       }
       
       const response = await updateAttribute(attributeForm.attributeId!, updateData)
-      if (response.success) {
+      const apiResponse = response.data
+      if (apiResponse.success) {
         ElMessage.success('更新成功')
         attributeDialogVisible.value = false
         loadAttributes()
       } else {
-        ElMessage.error(response.message || '更新失败')
+        ElMessage.error(apiResponse.message || '更新失败')
       }
     }
   } catch (error) {
@@ -986,12 +1058,13 @@ const handleBatchSave = async () => {
       attributes: createRequests
     })
     
-    if (response.success) {
-      ElMessage.success(`成功创建 ${response.data.length} 个属性`)
+    const apiResponse = response.data
+    if (apiResponse.success) {
+      ElMessage.success(`成功创建 ${apiResponse.data.length} 个属性`)
       batchDialogVisible.value = false
       loadAttributes()
     } else {
-      ElMessage.error(response.message || '批量创建失败')
+      ElMessage.error(apiResponse.message || '批量创建失败')
     }
   } catch (error) {
     console.error('批量创建属性失败:', error)

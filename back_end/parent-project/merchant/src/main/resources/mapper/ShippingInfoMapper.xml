@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hunric.mapper.ShippingInfoMapper">
+    <!-- 结果映射 -->
+    <resultMap id="BaseResultMap" type="com.hunric.model.ShippingInfo">
+        <id column="shipping_id" property="shippingId" />
+        <result column="user_id" property="userId" />
+        <result column="receiver_name" property="receiverName" />
+        <result column="receiver_phone" property="receiverPhone" />
+        <result column="province" property="province" />
+        <result column="city" property="city" />
+        <result column="district" property="district" />
+        <result column="detail_address" property="detailAddress" />
+        <result column="is_default" property="isDefault" />
+    </resultMap>
+    
+    <!-- 基础列 -->
+    <sql id="Base_Column_List">
+        shipping_id, user_id, receiver_name, receiver_phone, province, city, district,
+        detail_address, is_default
+    </sql>
+    
+    <!-- 根据ID查询收货信息 -->
+    <select id="findById" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List" />
+        FROM shipping_info
+        WHERE shipping_id = #{id}
+    </select>
+    
+    <!-- 根据用户ID查询收货信息列表 -->
+    <select id="findByUserId" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List" />
+        FROM shipping_info
+        WHERE user_id = #{userId}
+        ORDER BY is_default DESC
+    </select>
+    
+    <!-- 根据用户ID查询默认收货信息 -->
+    <select id="findDefaultByUserId" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List" />
+        FROM shipping_info
+        WHERE user_id = #{userId} AND is_default = 1
+        LIMIT 1
+    </select>
+    
+    <!-- 插入收货信息 -->
+    <insert id="insert" useGeneratedKeys="true" keyProperty="shippingId">
+        INSERT INTO shipping_info (
+            user_id, receiver_name, receiver_phone, province, city, district,
+            detail_address, is_default
+        ) VALUES (
+            #{userId}, #{receiverName}, #{receiverPhone}, #{province}, #{city}, #{district},
+            #{detailAddress}, #{isDefault}
+        )
+    </insert>
+    
+    <!-- 更新收货信息 -->
+    <update id="update">
+        UPDATE shipping_info
+        <set>
+            <if test="receiverName != null">
+                receiver_name = #{receiverName},
+            </if>
+            <if test="receiverPhone != null">
+                receiver_phone = #{receiverPhone},
+            </if>
+            <if test="province != null">
+                province = #{province},
+            </if>
+            <if test="city != null">
+                city = #{city},
+            </if>
+            <if test="district != null">
+                district = #{district},
+            </if>
+            <if test="detailAddress != null">
+                detail_address = #{detailAddress},
+            </if>
+            <if test="isDefault != null">
+                is_default = #{isDefault}
+            </if>
+        </set>
+        WHERE shipping_id = #{shippingId}
+    </update>
+    
+    <!-- 删除收货信息 -->
+    <delete id="deleteById">
+        DELETE FROM shipping_info
+        WHERE shipping_id = #{id}
+    </delete>
+</mapper> 

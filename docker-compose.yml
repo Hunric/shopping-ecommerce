@@ -129,6 +129,31 @@ services:
       retries: 5
       start_period: 30s
 
+  # 用户购物服务
+  shop-service:
+    build:
+      context: ./back_end/parent-project/shop
+      dockerfile: Dockerfile
+    image: shopping-shop-service:latest
+    container_name: shopping-shop-service
+    restart: unless-stopped
+    ports:
+      - "8083:8083"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - JAVA_OPTS=-Xms256m -Xmx512m
+      - TZ=Asia/Shanghai
+    volumes:
+      - ./logs/shop-service:/app/logs
+    networks:
+      - shopping-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8083/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
   # 前端服务
   frontend:
     build:

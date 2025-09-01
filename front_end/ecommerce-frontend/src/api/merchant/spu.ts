@@ -1,4 +1,5 @@
 import request from '@/utils/request'
+import type { AxiosResponse } from 'axios'
 
 // SPU相关接口
 export interface SPU {
@@ -98,195 +99,195 @@ export interface ApiResponse<T = any> {
 }
 
 // 获取商品列表（分页）
-export const getSPUList = (params: SPUQueryParams): Promise<ApiResponse<SPUPageResponse>> => {
+export const getSPUList = (params: SPUQueryParams): Promise<AxiosResponse<ApiResponse<SPUPageResponse>>> => {
   return request({
     url: '/api/merchant/spu',
     method: 'get',
     params
-  }).then(response => response.data)
+  })
 }
 
 // 获取商品详情
-export const getSPUDetail = (spuId: number): Promise<ApiResponse<SPU>> => {
+export const getSPUDetail = (spuId: number): Promise<AxiosResponse<ApiResponse<SPU>>> => {
   return request({
     url: `/api/merchant/spu/${spuId}`,
     method: 'get'
-  }).then(response => response.data)
+  })
 }
 
 // 创建商品
-export const createSPU = (data: SPUCreateData): Promise<ApiResponse<SPU>> => {
+export const createSPU = (data: SPUCreateData): Promise<AxiosResponse<ApiResponse<SPU>>> => {
   return request({
     url: '/api/merchant/spu',
     method: 'post',
     data
-  }).then(response => response.data)
+  })
 }
 
 // 批量创建商品
-export const batchCreateSPU = (dataList: SPUCreateData[]): Promise<ApiResponse<SPU[]>> => {
+export const batchCreateSPU = (dataList: SPUCreateData[]): Promise<AxiosResponse<ApiResponse<SPU[]>>> => {
   return request({
     url: '/api/merchant/spu/batch',
     method: 'post',
     data: dataList
-  }).then(response => response.data)
+  })
 }
 
 // 更新商品
-export const updateSPU = (spuId: number, data: SPUUpdateData): Promise<ApiResponse<SPU>> => {
+export const updateSPU = (spuId: number, data: SPUUpdateData): Promise<AxiosResponse<ApiResponse<SPU>>> => {
   return request({
     url: `/api/merchant/spu/${spuId}`,
     method: 'put',
     data
-  }).then(response => response.data)
+  })
 }
 
 // 删除商品
-export const deleteSPU = (spuId: number): Promise<ApiResponse<void>> => {
+export const deleteSPU = (spuId: number): Promise<AxiosResponse<ApiResponse<void>>> => {
   return request({
     url: `/api/merchant/spu/${spuId}`,
     method: 'delete'
-  }).then(response => response.data)
+  })
 }
 
 // 批量删除商品
-export const batchDeleteSPU = (spuIds: number[]): Promise<ApiResponse<void>> => {
+export const batchDeleteSPU = (spuIds: number[]): Promise<AxiosResponse<ApiResponse<void>>> => {
   return request({
     url: '/api/merchant/spu/batch-delete',
     method: 'delete',
     data: { spuIds }
-  }).then(response => response.data)
+  })
 }
 
 // 上架商品
-export const publishSPU = (spuId: number): Promise<ApiResponse<void>> => {
+export const publishSPU = (spuId: number): Promise<AxiosResponse<ApiResponse<void>>> => {
   return request({
     url: `/api/merchant/spu/${spuId}/publish`,
     method: 'post'
-  }).then(response => response.data)
+  })
 }
 
 // 下架商品
-export const unpublishSPU = (spuId: number): Promise<ApiResponse<void>> => {
+export const unpublishSPU = (spuId: number): Promise<AxiosResponse<ApiResponse<void>>> => {
   return request({
     url: `/api/merchant/spu/${spuId}/unpublish`,
     method: 'post'
-  }).then(response => response.data)
+  })
 }
 
 // 批量上架
-export const batchPublishSPU = (spuIds: number[]): Promise<ApiResponse<void>> => {
+export const batchPublishSPU = (spuIds: number[]): Promise<AxiosResponse<ApiResponse<void>>> => {
   return request({
     url: '/api/merchant/spu/batch-publish',
     method: 'post',
     data: { spuIds }
-  }).then(response => response.data)
+  })
 }
 
 // 批量下架
-export const batchUnpublishSPU = (spuIds: number[]): Promise<ApiResponse<void>> => {
+export const batchUnpublishSPU = (spuIds: number[]): Promise<AxiosResponse<ApiResponse<void>>> => {
   return request({
     url: '/api/merchant/spu/batch-unpublish',
     method: 'post',
     data: { spuIds }
-  }).then(response => response.data)
+  })
 }
 
 // 复制商品
-export const copySPU = (spuId: number, newName: string): Promise<ApiResponse<SPU>> => {
+export const copySPU = (spuId: number, newName: string): Promise<AxiosResponse<ApiResponse<SPU>>> => {
   return request({
     url: `/api/merchant/spu/${spuId}/copy`,
     method: 'post',
     data: { newName }
-  }).then(response => response.data)
+  })
 }
 
 // 获取商品统计信息
-export const getSPUStats = (storeId: number): Promise<ApiResponse<SPUStats>> => {
+export const getSPUStats = (storeId: number): Promise<AxiosResponse<ApiResponse<SPUStats>>> => {
   return request({
     url: `/api/merchant/spu/stats`,
     method: 'get',
     params: { storeId }
-  }).then(response => response.data)
+  })
 }
 
 // SKU相关API
 
 // 获取SKU列表
-export const getSKUList = (spuId: number): Promise<ApiResponse<SKU[]>> => {
+export const getSKUList = (spuId: number): Promise<AxiosResponse<ApiResponse<SKU[]>>> => {
   return request({
     url: `/api/merchant/spu/${spuId}/sku`,
     method: 'get'
-  }).then(response => response.data)
+  })
 }
 
 // 创建SKU
-export const createSKU = (spuId: number, data: Omit<SKU, 'skuId' | 'spuId' | 'createTime' | 'updateTime'>): Promise<ApiResponse<SKU>> => {
+export const createSKU = (spuId: number, data: Omit<SKU, 'skuId' | 'spuId' | 'createTime' | 'updateTime'>): Promise<AxiosResponse<ApiResponse<SKU>>> => {
   return request({
     url: `/api/merchant/spu/${spuId}/sku`,
     method: 'post',
     data
-  }).then(response => response.data)
+  })
 }
 
 // 更新SKU
-export const updateSKU = (skuId: number, data: Partial<SKU>): Promise<ApiResponse<SKU>> => {
+export const updateSKU = (skuId: number, data: Partial<SKU>): Promise<AxiosResponse<ApiResponse<SKU>>> => {
   return request({
     url: `/api/merchant/sku/${skuId}`,
     method: 'put',
     data
-  }).then(response => response.data)
+  })
 }
 
 // 删除SKU
-export const deleteSKU = (skuId: number): Promise<ApiResponse<void>> => {
+export const deleteSKU = (skuId: number): Promise<AxiosResponse<ApiResponse<void>>> => {
   return request({
     url: `/api/merchant/sku/${skuId}`,
     method: 'delete'
-  }).then(response => response.data)
+  })
 }
 
 // 批量更新SKU库存
-export const batchUpdateSKUStock = (updates: { skuId: number; stockQuantity: number }[]): Promise<ApiResponse<void>> => {
+export const batchUpdateSKUStock = (updates: { skuId: number; stockQuantity: number }[]): Promise<AxiosResponse<ApiResponse<void>>> => {
   return request({
-    url: '/api/merchant/sku/batch-update-stock',
-    method: 'post',
+    url: '/api/merchant/sku/batch-stock',
+    method: 'put',
     data: { updates }
-  }).then(response => response.data)
+  })
 }
 
 // 批量更新SKU价格
-export const batchUpdateSKUPrice = (updates: { skuId: number; salePrice: number }[]): Promise<ApiResponse<void>> => {
+export const batchUpdateSKUPrice = (updates: { skuId: number; salePrice: number }[]): Promise<AxiosResponse<ApiResponse<void>>> => {
   return request({
-    url: '/api/merchant/sku/batch-update-price',
-    method: 'post',
+    url: '/api/merchant/sku/batch-price',
+    method: 'put',
     data: { updates }
-  }).then(response => response.data)
+  })
 }
 
 // 获取分类的基础属性
-export const getCategoryBasicAttributes = (categoryId: number): Promise<ApiResponse<any[]>> => {
+export const getCategoryBasicAttributes = (categoryId: number): Promise<AxiosResponse<ApiResponse<any[]>>> => {
   return request({
     url: `/api/merchant/category/${categoryId}/basic-attributes`,
     method: 'get'
-  }).then(response => response.data)
+  })
 }
 
 // 获取分类的非基础属性
-export const getCategoryNonBasicAttributes = (categoryId: number): Promise<ApiResponse<any[]>> => {
+export const getCategoryNonBasicAttributes = (categoryId: number): Promise<AxiosResponse<ApiResponse<any[]>>> => {
   return request({
     url: `/api/merchant/category/${categoryId}/non-basic-attributes`,
     method: 'get'
-  }).then(response => response.data)
+  })
 }
 
-// 生成SKU组合
-export const generateSKUCombinations = (basicAttributes: Record<string, string[]>): Promise<ApiResponse<any[]>> => {
+// 根据基础属性生成SKU组合
+export const generateSKUCombinations = (basicAttributes: Record<string, string[]>): Promise<AxiosResponse<ApiResponse<any[]>>> => {
   return request({
     url: '/api/merchant/spu/generate-sku-combinations',
     method: 'post',
     data: { basicAttributes }
-  }).then(response => response.data)
+  })
 }
 
 // 状态选项

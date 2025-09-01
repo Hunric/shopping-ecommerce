@@ -48,7 +48,7 @@ export interface UpdateCategoryRequest {
  */
 export const getCategoryTree = async (storeId: number): Promise<ApiResponse<ProductCategory[]>> => {
   const response = await request.get(`/api/merchant/category/tree/${storeId}`)
-  return response.data
+  return response as any
 }
 
 /**
@@ -56,7 +56,7 @@ export const getCategoryTree = async (storeId: number): Promise<ApiResponse<Prod
  */
 export const getTopCategories = async (storeId: number): Promise<ApiResponse<ProductCategory[]>> => {
   const response = await request.get(`/api/merchant/category/top/${storeId}`)
-  return response.data
+  return response as any
 }
 
 /**
@@ -64,7 +64,7 @@ export const getTopCategories = async (storeId: number): Promise<ApiResponse<Pro
  */
 export const getChildCategories = async (storeId: number, parentId: number): Promise<ApiResponse<ProductCategory[]>> => {
   const response = await request.get(`/api/merchant/category/children/${storeId}/${parentId}`)
-  return response.data
+  return response as any
 }
 
 /**
@@ -72,7 +72,7 @@ export const getChildCategories = async (storeId: number, parentId: number): Pro
  */
 export const getLeafCategories = async (storeId: number): Promise<ApiResponse<ProductCategory[]>> => {
   const response = await request.get(`/api/merchant/category/leaf/${storeId}`)
-  return response.data
+  return response as any
 }
 
 /**
@@ -80,7 +80,7 @@ export const getLeafCategories = async (storeId: number): Promise<ApiResponse<Pr
  */
 export const getCategoryById = async (categoryId: number): Promise<ApiResponse<ProductCategory>> => {
   const response = await request.get(`/api/merchant/category/${categoryId}`)
-  return response.data
+  return response as any
 }
 
 /**
@@ -88,7 +88,7 @@ export const getCategoryById = async (categoryId: number): Promise<ApiResponse<P
  */
 export const createCategory = async (data: CreateCategoryRequest): Promise<ApiResponse<ProductCategory>> => {
   const response = await request.post('/api/merchant/category', data)
-  return response.data
+  return response as any
 }
 
 /**
@@ -96,7 +96,7 @@ export const createCategory = async (data: CreateCategoryRequest): Promise<ApiRe
  */
 export const updateCategory = async (categoryId: number, data: Partial<ProductCategory>): Promise<ApiResponse<ProductCategory>> => {
   const response = await request.put(`/api/merchant/category/${categoryId}`, data)
-  return response.data
+  return response as any
 }
 
 /**
@@ -104,7 +104,7 @@ export const updateCategory = async (categoryId: number, data: Partial<ProductCa
  */
 export const deleteCategory = async (categoryId: number): Promise<ApiResponse<string>> => {
   const response = await request.delete(`/api/merchant/category/${categoryId}`)
-  return response.data
+  return response as any
 }
 
 /**
@@ -114,7 +114,7 @@ export const moveCategory = async (categoryId: number, newParentId: number): Pro
   const response = await request.put(`/api/merchant/category/${categoryId}/move`, null, {
     params: { newParentId }
   })
-  return response.data
+  return response as any
 }
 
 /**
@@ -122,5 +122,5 @@ export const moveCategory = async (categoryId: number, newParentId: number): Pro
  */
 export const isLeafCategory = async (categoryId: number): Promise<ApiResponse<boolean>> => {
   const response = await request.get(`/api/merchant/category/${categoryId}/is-leaf`)
-  return response.data
+  return response as any
 } 

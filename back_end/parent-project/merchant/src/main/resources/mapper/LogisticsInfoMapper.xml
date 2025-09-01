@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hunric.mapper.LogisticsInfoMapper">
+    <!-- 结果映射 -->
+    <resultMap id="BaseResultMap" type="com.hunric.model.LogisticsInfo">
+        <id column="logistics_id" property="logisticsId" />
+        <result column="order_id" property="orderId" />
+        <result column="shipping_company" property="shippingCompany" />
+        <result column="tracking_number" property="trackingNumber" />
+        <result column="ship_time" property="shipTime" />
+        <result column="logistics_status" property="logisticsStatus" />
+        <result column="logistics_track" property="logisticsTrack" />
+        <result column="create_time" property="createTime" />
+        <result column="update_time" property="updateTime" />
+    </resultMap>
+    
+    <!-- 基础列 -->
+    <sql id="Base_Column_List">
+        logistics_id, order_id, shipping_company, tracking_number, ship_time, logistics_status, 
+        logistics_track, create_time, update_time
+    </sql>
+    
+    <!-- 根据ID查询物流信息 -->
+    <select id="findById" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List" />
+        FROM logistics_info
+        WHERE logistics_id = #{id}
+    </select>
+    
+    <!-- 根据订单ID查询物流信息 -->
+    <select id="findByOrderId" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List" />
+        FROM logistics_info
+        WHERE order_id = #{orderId}
+    </select>
+    
+    <!-- 插入物流信息 -->
+    <insert id="insert" useGeneratedKeys="true" keyProperty="logisticsId">
+        INSERT INTO logistics_info (
+            order_id, shipping_company, tracking_number, ship_time, logistics_status, 
+            logistics_track, create_time, update_time
+        ) VALUES (
+            #{orderId}, #{shippingCompany}, #{trackingNumber}, #{shipTime}, #{logisticsStatus}, 
+            #{logisticsTrack}, NOW(), NOW()
+        )
+    </insert>
+    
+    <!-- 更新物流信息 -->
+    <update id="update">
+        UPDATE logistics_info
+        <set>
+            <if test="shippingCompany != null">
+                shipping_company = #{shippingCompany},
+            </if>
+            <if test="trackingNumber != null">
+                tracking_number = #{trackingNumber},
+            </if>
+            <if test="shipTime != null">
+                ship_time = #{shipTime},
+            </if>
+            <if test="logisticsStatus != null">
+                logistics_status = #{logisticsStatus},
+            </if>
+            <if test="logisticsTrack != null">
+                logistics_track = #{logisticsTrack},
+            </if>
+            update_time = NOW()
+        </set>
+        WHERE logistics_id = #{logisticsId}
+    </update>
+</mapper> 

@@ -49,7 +49,7 @@ export interface BatchCreateAttributesRequest {
  */
 export const getCategoryAttributes = async (categoryId: number): Promise<ApiResponse<CategoryAttribute[]>> => {
   const response = await request.get(`/api/merchant/category/attribute/category/${categoryId}`)
-  return response.data
+  return response as any
 }
 
 /**
@@ -57,7 +57,7 @@ export const getCategoryAttributes = async (categoryId: number): Promise<ApiResp
  */
 export const getAttributeById = async (attributeId: number): Promise<ApiResponse<CategoryAttribute>> => {
   const response = await request.get(`/api/merchant/category/attribute/${attributeId}`)
-  return response.data
+  return response as any
 }
 
 /**
@@ -65,7 +65,7 @@ export const getAttributeById = async (attributeId: number): Promise<ApiResponse
  */
 export const createAttribute = async (data: CreateSingleAttributeRequest): Promise<ApiResponse<CategoryAttribute>> => {
   const response = await request.post('/api/merchant/category/attribute', data)
-  return response.data
+  return response as any
 }
 
 /**
@@ -73,7 +73,7 @@ export const createAttribute = async (data: CreateSingleAttributeRequest): Promi
  */
 export const updateAttribute = async (attributeId: number, data: UpdateAttributeRequest): Promise<ApiResponse<CategoryAttribute>> => {
   const response = await request.put(`/api/merchant/category/attribute/${attributeId}`, data)
-  return response.data
+  return response as any
 }
 
 /**
@@ -81,7 +81,7 @@ export const updateAttribute = async (attributeId: number, data: UpdateAttribute
  */
 export const deleteAttribute = async (attributeId: number): Promise<ApiResponse<string>> => {
   const response = await request.delete(`/api/merchant/category/attribute/${attributeId}`)
-  return response.data
+  return response as any
 }
 
 /**
@@ -89,7 +89,7 @@ export const deleteAttribute = async (attributeId: number): Promise<ApiResponse<
  */
 export const batchCreateAttributes = async (data: BatchCreateAttributesRequest): Promise<ApiResponse<CategoryAttribute[]>> => {
   const response = await request.post('/api/merchant/category/attribute/batch', data)
-  return response.data
+  return response as any
 }
 
 /**
@@ -97,7 +97,7 @@ export const batchCreateAttributes = async (data: BatchCreateAttributesRequest):
  */
 export const canManageAttributes = async (categoryId: number): Promise<ApiResponse<boolean>> => {
   const response = await request.get(`/api/merchant/category/attribute/category/${categoryId}/can-manage`)
-  return response.data
+  return response as any
 }
 
 /**
@@ -105,7 +105,7 @@ export const canManageAttributes = async (categoryId: number): Promise<ApiRespon
  */
 export const getAttributeTypes = async (): Promise<ApiResponse<string[]>> => {
   const response = await request.get('/api/merchant/category/attribute/types')
-  return response.data
+  return response as any
 }
 
 // 属性类型选项

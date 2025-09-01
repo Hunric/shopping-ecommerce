@@ -1,4 +1,5 @@
 import request from '@/utils/request'
+import type { AxiosResponse } from 'axios'
 
 // 店铺信息接口
 export interface Store {
@@ -54,10 +55,10 @@ export interface StoreUpdateData {
 /**
  * 获取商家的店铺列表
  */
-export const getStoresByMerchantId = async (merchantId: number): Promise<ApiResponse<Store[]>> => {
+export const getStoresByMerchantId = async (merchantId: number): Promise<AxiosResponse<ApiResponse<Store[]>>> => {
   try {
     const response = await request.get(`/api/merchant/store/list/${merchantId}`)
-    return response.data
+    return response
   } catch (error) {
     console.error('获取店铺列表失败:', error)
     throw error
@@ -67,10 +68,10 @@ export const getStoresByMerchantId = async (merchantId: number): Promise<ApiResp
 /**
  * 根据店铺ID获取店铺信息
  */
-export const getStoreById = async (storeId: number): Promise<ApiResponse<Store>> => {
+export const getStoreById = async (storeId: number): Promise<AxiosResponse<ApiResponse<Store>>> => {
   try {
     const response = await request.get(`/api/merchant/store/${storeId}`)
-    return response.data
+    return response
   } catch (error) {
     console.error('获取店铺信息失败:', error)
     throw error
@@ -80,10 +81,10 @@ export const getStoreById = async (storeId: number): Promise<ApiResponse<Store>>
 /**
  * 创建店铺
  */
-export const createStore = async (storeData: StoreCreateData): Promise<ApiResponse<Store>> => {
+export const createStore = async (storeData: StoreCreateData): Promise<AxiosResponse<ApiResponse<Store>>> => {
   try {
     const response = await request.post('/api/merchant/store/create', storeData)
-    return response.data
+    return response
   } catch (error) {
     console.error('创建店铺失败:', error)
     throw error
@@ -93,10 +94,10 @@ export const createStore = async (storeData: StoreCreateData): Promise<ApiRespon
 /**
  * 更新店铺信息
  */
-export const updateStore = async (storeId: number, storeData: StoreUpdateData): Promise<ApiResponse<Store>> => {
+export const updateStore = async (storeId: number, storeData: StoreUpdateData): Promise<AxiosResponse<ApiResponse<Store>>> => {
   try {
     const response = await request.put(`/api/merchant/store/${storeId}`, storeData)
-    return response.data
+    return response
   } catch (error) {
     console.error('更新店铺失败:', error)
     throw error
@@ -106,10 +107,10 @@ export const updateStore = async (storeId: number, storeData: StoreUpdateData): 
 /**
  * 删除店铺
  */
-export const deleteStore = async (storeId: number): Promise<ApiResponse<string>> => {
+export const deleteStore = async (storeId: number): Promise<AxiosResponse<ApiResponse<string>>> => {
   try {
     const response = await request.delete(`/api/merchant/store/${storeId}`)
-    return response.data
+    return response
   } catch (error) {
     console.error('删除店铺失败:', error)
     throw error
@@ -119,10 +120,10 @@ export const deleteStore = async (storeId: number): Promise<ApiResponse<string>>
 /**
  * 获取商家店铺数量
  */
-export const getStoreCount = async (merchantId: number): Promise<ApiResponse<number>> => {
+export const getStoreCount = async (merchantId: number): Promise<AxiosResponse<ApiResponse<number>>> => {
   try {
     const response = await request.get(`/api/merchant/store/count/${merchantId}`)
-    return response.data
+    return response
   } catch (error) {
     console.error('获取店铺数量失败:', error)
     throw error

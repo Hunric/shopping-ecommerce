@@ -19,7 +19,7 @@ import java.util.Map;
 public class JwtUtil {
     
     // JWT密钥
-    @Value("${jwt.secret:hunric-shopping-ecommerce-jwt-secret-key-2024}")
+    @Value("${jwt.secret:hunric-shopping-ecommerce-jwt-secret-key-2024-very-long-secure-key-for-hs512-algorithm-minimum-512-bits-required}")
     private String jwtSecret;
     
     // JWT过期时间（毫秒）- 默认24小时
@@ -38,7 +38,7 @@ public class JwtUtil {
     }
     
     /**
-     * 生成访问令牌
+     * 生成商家访问令牌
      * @param merchantId 商家ID
      * @param email 商家邮箱
      * @return JWT令牌
@@ -48,12 +48,13 @@ public class JwtUtil {
         claims.put("merchantId", merchantId);
         claims.put("email", email);
         claims.put("type", "access");
+        claims.put("userType", "merchant");
         
         return createToken(claims, email, jwtExpiration);
     }
     
     /**
-     * 生成刷新令牌
+     * 生成商家刷新令牌
      * @param merchantId 商家ID
      * @param email 商家邮箱
      * @return 刷新令牌
@@ -63,6 +64,39 @@ public class JwtUtil {
         claims.put("merchantId", merchantId);
         claims.put("email", email);
         claims.put("type", "refresh");
+        claims.put("userType", "merchant");
+        
+        return createToken(claims, email, refreshExpiration);
+    }
+    
+    /**
+     * 生成用户访问令牌
+     * @param userId 用户ID
+     * @param email 用户邮箱
+     * @return JWT令牌
+     */
+    public String generateUserAccessToken(Long userId, String email) {
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("userId", userId);
+        claims.put("email", email);
+        claims.put("type", "access");
+        claims.put("userType", "user");
+        
+        return createToken(claims, email, jwtExpiration);
+    }
+    
+    /**
+     * 生成用户刷新令牌
+     * @param userId 用户ID
+     * @param email 用户邮箱
+     * @return 刷新令牌
+     */
+    public String generateUserRefreshToken(Long userId, String email) {
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("userId", userId);
+        claims.put("email", email);
+        claims.put("type", "refresh");
+        claims.put("userType", "user");
         
         return createToken(claims, email, refreshExpiration);
     }
@@ -104,6 +138,26 @@ public class JwtUtil {
     public Long getMerchantIdFromToken(String token) {
         Claims claims = getClaimsFromToken(token);
         return claims.get("merchantId", Long.class);
+    }
+    
+    /**
+     * 从令牌中获取用户ID
+     * @param token JWT令牌
+     * @return 用户ID
+     */
+    public Long getUserIdFromToken(String token) {
+        Claims claims = getClaimsFromToken(token);
+        return claims.get("userId", Long.class);
+    }
+    
+    /**
+     * 从令牌中获取用户类型
+     * @param token JWT令牌
+     * @return 用户类型 (user/merchant)
+     */
+    public String getUserTypeFromToken(String token) {
+        Claims claims = getClaimsFromToken(token);
+        return claims.get("userType", String.class);
     }
     
     /**

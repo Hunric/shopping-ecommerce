@@ -72,7 +72,7 @@ mybatis:
     
 # JWT配置
 jwt:
-  secret: hunric-shopping-ecommerce-merchant-jwt-secret-key-2024-very-long-secret
+  secret: hunric-shopping-ecommerce-jwt-secret-key-2024
   expiration: 86400000  # 24小时（毫秒）
   refresh-expiration: 604800000  # 7天（毫秒）
 

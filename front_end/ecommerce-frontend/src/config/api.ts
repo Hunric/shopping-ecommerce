@@ -138,9 +138,34 @@ export const FILE_API = {
   UPLOAD_IMAGE: '/api/upload/image'
 }
 
-// 用户服务API路径（预留）
+// 用户服务API路径
 export const USER_API = {
-  // 用户相关API路径
+  // 商品相关
+  PRODUCTS: '/api/user/products',
+  PRODUCT_DETAIL: (spuId: number) => `/api/user/products/${spuId}`,
+  PRODUCTS_SEARCH: '/api/user/products/search',
+  PRODUCTS_HOT: '/api/user/products/hot',
+  PRODUCTS_RECOMMENDED: '/api/user/products/recommended',
+  
+  // 分类相关
+  CATEGORIES: '/api/user/categories',
+  CATEGORY_PRODUCTS: (categoryId: number) => `/api/user/categories/${categoryId}/products`,
+  
+  // 用户相关（预留）
+  LOGIN: '/api/user/login',
+  REGISTER: '/api/user/register',
+  PROFILE: '/api/user/profile',
+  
+  // 购物车相关（预留）
+  CART: '/api/user/cart',
+  CART_ADD: '/api/user/cart/add',
+  CART_UPDATE: '/api/user/cart/update',
+  CART_REMOVE: '/api/user/cart/remove',
+  
+  // 订单相关（预留）
+  ORDERS: '/api/user/orders',
+  ORDER_CREATE: '/api/user/orders/create',
+  ORDER_DETAIL: (orderId: number) => `/api/user/orders/${orderId}`
 }
 
 export default API_CONFIG 

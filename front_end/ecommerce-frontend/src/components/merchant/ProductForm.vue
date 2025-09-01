@@ -470,6 +470,14 @@
       <el-button type="primary" @click="handleSubmit" :loading="submitting">
         {{ mode === 'edit' ? '更新商品' : '创建商品' }}
       </el-button>
+      <el-button 
+        type="info" 
+        @click="testAPIs" 
+        size="small"
+        style="margin-left: 12px"
+      >
+        测试API
+      </el-button>
     </div>
   </div>
 </template>
@@ -578,12 +586,55 @@ const buildCategoryTree = (cats: ProductCategory[]): any[] => {
 
 const loadCategories = async () => {
   try {
+    console.log('=== 开始加载分类数据 ===')
+    console.log('店铺ID:', props.storeId)
+    
+    if (!props.storeId) {
+      console.error('店铺ID为空，无法加载分类')
+      ElMessage.error('店铺ID为空，无法加载分类')
+      return
+    }
+    
     const response = await getCategoryTree(props.storeId)
-    if (response.success && response.data) {
-      categories.value = response.data
+    console.log('分类API响应:', response)
+    
+    const apiResponse = response.data
+    console.log('分类API数据:', apiResponse)
+    
+    if (apiResponse.success && apiResponse.data) {
+      categories.value = apiResponse.data
+      console.log('分类数据加载成功:', categories.value)
+      console.log('分类数量:', categories.value.length)
+      
+      // 检查分类结构
+      categories.value.forEach((category, index) => {
+        console.log(`分类${index + 1}:`, {
+          id: category.categoryId,
+          name: category.categoryName,
+          hasChildren: !!(category.children && category.children.length > 0),
+          childrenCount: category.children ? category.children.length : 0
+        })
+      })
+      
+      if (categories.value.length === 0) {
+        ElMessage.warning('该店铺暂无分类数据，请先创建分类')
+      }
+    } else {
+      console.error('分类API返回失败:', apiResponse.message)
+      ElMessage.error(apiResponse.message || '获取分类数据失败')
+      categories.value = []
     }
   } catch (error) {
-    console.error('加载分类失败:', error)
+    console.error('=== 分类加载异常 ===')
+    console.error('错误详情:', error)
+    console.error('错误类型:', typeof error)
+    console.error('错误消息:', error.message)
+    if (error.response) {
+      console.error('响应状态:', error.response.status)
+      console.error('响应数据:', error.response.data)
+    }
+    ElMessage.error('加载分类失败，请稍后重试')
+    categories.value = []
   }
 }
 
@@ -607,12 +658,13 @@ const loadCategoryAttributes = async (categoryId: number) => {
     console.log('非基础属性响应:', JSON.stringify(nonBasicResponse, null, 2))
 
     // 处理基础属性
-    if (basicResponse.success && basicResponse.data) {
+    const basicApiResponse = basicResponse.data
+    if (basicApiResponse.success && basicApiResponse.data) {
       console.log('=== 处理基础属性 ===')
-      console.log('基础属性原始数据:', basicResponse.data)
+      console.log('基础属性原始数据:', basicApiResponse.data)
       
       // 转换数据格式
-      basicAttributes.value = basicResponse.data.map((attr: any) => ({
+      basicAttributes.value = basicApiResponse.data.map((attr: any) => ({
         ...attr,
         options: attr.options ? attr.options.map((option: string, index: number) => ({
           optionId: `${attr.attributeId}_${index}`,
@@ -646,16 +698,17 @@ const loadCategoryAttributes = async (categoryId: number) => {
         }
       })
     } else {
-      console.warn('加载基础属性失败:', basicResponse.message)
+      console.warn('加载基础属性失败:', basicApiResponse.message)
     }
 
     // 处理非基础属性
-    if (nonBasicResponse.success && nonBasicResponse.data) {
+    const nonBasicApiResponse = nonBasicResponse.data
+    if (nonBasicApiResponse.success && nonBasicApiResponse.data) {
       console.log('=== 处理非基础属性 ===')
-      console.log('非基础属性原始数据:', nonBasicResponse.data)
+      console.log('非基础属性原始数据:', nonBasicApiResponse.data)
       
       // 转换数据格式
-      nonBasicAttributes.value = nonBasicResponse.data.map((attr: any) => ({
+      nonBasicAttributes.value = nonBasicApiResponse.data.map((attr: any) => ({
         ...attr,
         options: attr.options ? attr.options.map((option: string, index: number) => ({
           optionId: `${attr.attributeId}_${index}`,
@@ -702,7 +755,7 @@ const loadCategoryAttributes = async (categoryId: number) => {
         }
       })
     } else {
-      console.warn('加载非基础属性失败:', nonBasicResponse.message)
+      console.warn('加载非基础属性失败:', nonBasicApiResponse.message)
     }
 
     // 如果都没有加载到属性，抛出错误
@@ -808,8 +861,9 @@ const generateSKUPreview = async () => {
 
   try {
     const response = await generateSKUCombinations(formData.basicAttributes)
-    if (response.success && response.data) {
-      skuPreview.value = response.data.map((combination: any) => ({
+    const apiResponse = response.data
+    if (apiResponse.success && apiResponse.data) {
+      skuPreview.value = apiResponse.data.map((combination: any) => ({
         skuName: combination.skuName,
         attributeCombination: combination.attributeCombination,
         salePrice: formData.displayPrice,
@@ -818,6 +872,9 @@ const generateSKUPreview = async () => {
         warnStock: 10
       }))
       ElMessage.success(`成功生成 ${skuPreview.value.length} 个SKU组合`)
+    } else {
+      console.error('SKU生成API返回错误:', apiResponse.message)
+      ElMessage.error(apiResponse.message || '生成SKU组合失败')
     }
   } catch (error) {
     console.error('生成SKU组合失败:', error)
@@ -1096,12 +1153,15 @@ const submitForm = async (status: string) => {
     console.log('=== API响应 ===')
     console.log('响应数据:', response)
     
-    if (response.success) {
+    const apiResponse = response.data
+    console.log('API数据:', apiResponse)
+    
+    if (apiResponse.success) {
       ElMessage.success(props.mode === 'edit' ? '商品更新成功' : '商品创建成功')
       emit('success')
     } else {
-      console.error('API返回错误:', response.message)
-      ElMessage.error(response.message || '操作失败')
+      console.error('API返回错误:', apiResponse.message)
+      ElMessage.error(apiResponse.message || '操作失败')
     }
   } catch (error: any) {
     console.error('=== 提交异常 ===')
@@ -1193,6 +1253,47 @@ watch(
   },
   { deep: true }
 )
+
+// 测试API功能
+const testAPIs = async () => {
+  console.log('=== 开始测试ProductForm API ===')
+  
+  try {
+    // 测试分类加载
+    if (props.storeId) {
+      ElMessage.info('测试分类加载API...')
+      await loadCategories()
+      
+      // 如果有分类，测试属性加载
+      if (categories.value.length > 0) {
+        const firstCategory = categories.value[0]
+        // 找到叶子节点
+        let leafCategory = firstCategory
+        while (leafCategory.children && leafCategory.children.length > 0) {
+          leafCategory = leafCategory.children[0]
+        }
+        
+        if (leafCategory.categoryId) {
+          ElMessage.info(`测试属性加载API (分类: ${leafCategory.categoryName})...`)
+          try {
+            await loadCategoryAttributes(leafCategory.categoryId)
+            ElMessage.success('属性加载测试成功')
+          } catch (error) {
+            console.error('属性加载测试失败:', error)
+            ElMessage.warning('属性加载测试失败，可能该分类暂无属性')
+          }
+        }
+      }
+      
+      ElMessage.success('API测试完成，请查看控制台日志')
+    } else {
+      ElMessage.warning('缺少店铺ID，无法测试API')
+    }
+  } catch (error) {
+    console.error('API测试失败:', error)
+    ElMessage.error('API测试失败')
+  }
+}
 
 // 组件挂载
 onMounted(() => {
